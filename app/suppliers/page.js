@@ -1,279 +1,271 @@
  'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
-import Navbar from '../components/Navbar'
+import { supabase } from '@/app/lib/supabase'
+import Navbar from '@/app/components/Navbar'
 
-export default function Suppliers() {
+const clash = "'Clash Display', sans-serif"
+
+const categoryConfig = {
+  Meat: { bg: '#fef2f2', border: '#fecaca', icon: '🥩', badge: '#fee2e2', badgeText: '#dc2626' },
+  Vegetables: { bg: '#f0fdf4', border: '#bbf7d0', icon: '🥦', badge: '#dcfce7', badgeText: '#16a34a' },
+  Oil: { bg: '#fffbeb', border: '#fde68a', icon: '🛢️', badge: '#fef3c7', badgeText: '#d97706' },
+  Dairy: { bg: '#eff6ff', border: '#bfdbfe', icon: '🥛', badge: '#dbeafe', badgeText: '#2563eb' },
+  Beverages: { bg: '#faf5ff', border: '#e9d5ff', icon: '🍺', badge: '#ede9fe', badgeText: '#7c3aed' },
+  Spices: { bg: '#fff7ed', border: '#fed7aa', icon: '🧂', badge: '#ffedd5', badgeText: '#ea580c' },
+  Other: { bg: '#f9fafb', border: '#e5e7eb', icon: '📦', badge: '#f3f4f6', badgeText: '#6b7280' },
+}
+
+export default function SuppliersPage() {
   const [user, setUser] = useState(null)
   const [suppliers, setSuppliers] = useState([])
-  const [expandedSupplier, setExpandedSupplier] = useState(null)
+  const [expandedId, setExpandedId] = useState(null)
   const [products, setProducts] = useState({})
   const [showAddSupplier, setShowAddSupplier] = useState(false)
-  const [showAddProduct, setShowAddProduct] = useState(null)
-  const [editingSupplier, setEditingSupplier] = useState(null)
+  const [addProductFor, setAddProductFor] = useState(null)
+  const [newSupplier, setNewSupplier] = useState({ name: '', phone: '', category: 'Vegetables', notes: '' })
+  const [newProduct, setNewProduct] = useState({ name: '', unit: 'kg', current_price: '', alert_threshold: 10 })
+  const [loading, setLoading] = useState(false)
 
-  const [supplierForm, setSupplierForm] = useState({ name: '', phone: '', category: '', notes: '' })
-  const [productForm, setProductForm] = useState({ name: '', unit: '', current_price: '', alert_threshold: 10 })
+  useEffect(() => { getUser() }, [])
 
-  useEffect(() => { initialize() }, [])
-
-  async function initialize() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { window.location.href = '/login'; return }
-    setUser(user)
-    fetchSuppliers()
+  async function getUser() {
+    const { data } = await supabase.auth.getUser()
+    if (data?.user) { setUser(data.user); fetchSuppliers() }
+    else window.location.href = '/login'
   }
 
   async function fetchSuppliers() {
-    const { data } = await supabase
-      .from('suppliers')
-      .select('*')
-      .order('created_at', { ascending: false })
-    setSuppliers(data || [])
+    const { data } = await supabase.from('suppliers').select('*').order('name')
+    if (data) setSuppliers(data)
   }
 
   async function fetchProducts(supplierId) {
-    const { data } = await supabase
-      .from('products')
-      .select('*')
-      .eq('supplier_id', supplierId)
-      .order('name')
-    setProducts(prev => ({ ...prev, [supplierId]: data || [] }))
+    if (products[supplierId]) return
+    const { data } = await supabase.from('products').select('*').eq('supplier_id', supplierId).order('name')
+    if (data) setProducts(p => ({ ...p, [supplierId]: data }))
   }
 
-  async function handleSupplierSubmit(e) {
-    e.preventDefault()
-    if (!supplierForm.name.trim()) return
-    if (editingSupplier) {
-      await supabase.from('suppliers').update(supplierForm).eq('id', editingSupplier)
-    } else {
-      await supabase.from('suppliers').insert({ ...supplierForm, user_id: user.id })
-    }
-    setSupplierForm({ name: '', phone: '', category: '', notes: '' })
-    setShowAddSupplier(false)
-    setEditingSupplier(null)
-    fetchSuppliers()
+  function toggleExpand(supplier) {
+    if (expandedId === supplier.id) { setExpandedId(null); setAddProductFor(null) }
+    else { setExpandedId(supplier.id); fetchProducts(supplier.id) }
   }
 
-  async function handleDeleteSupplier(id) {
+  async function saveSupplier() {
+    if (!newSupplier.name.trim()) return
+    setLoading(true)
+    const { data } = await supabase.from('suppliers').insert([{ ...newSupplier, user_id: user.id }]).select()
+    if (data) { setSuppliers(s => [...s, data[0]]); setShowAddSupplier(false); setNewSupplier({ name: '', phone: '', category: 'Vegetables', notes: '' }) }
+    setLoading(false)
+  }
+
+  async function deleteSupplier(id) {
     if (!confirm('Delete this supplier and all their products?')) return
     await supabase.from('suppliers').delete().eq('id', id)
-    fetchSuppliers()
+    setSuppliers(s => s.filter(x => x.id !== id))
+    setExpandedId(null)
   }
 
-  async function handleProductSubmit(e, supplierId) {
-    e.preventDefault()
-    await supabase.from('products').insert({
-      ...productForm,
-      current_price: Number(productForm.current_price),
-      alert_threshold: Number(productForm.alert_threshold),
-      supplier_id: supplierId,
-      user_id: user.id
-    })
-    setProductForm({ name: '', unit: '', current_price: '', alert_threshold: 10 })
-    setShowAddProduct(null)
-    fetchProducts(supplierId)
-  }
-
-  async function handleDeleteProduct(productId, supplierId) {
-    await supabase.from('products').delete().eq('id', productId)
-    fetchProducts(supplierId)
-  }
-
-  function toggleSupplier(supplierId) {
-    if (expandedSupplier === supplierId) {
-      setExpandedSupplier(null)
-    } else {
-      setExpandedSupplier(supplierId)
-      fetchProducts(supplierId)
+  async function saveProduct(supplierId) {
+    if (!newProduct.name.trim() || !newProduct.current_price) return
+    setLoading(true)
+    const { data } = await supabase.from('products').insert([{ ...newProduct, supplier_id: supplierId, user_id: user.id, current_price: parseFloat(newProduct.current_price) }]).select()
+    if (data) {
+      setProducts(p => ({ ...p, [supplierId]: [...(p[supplierId] || []), data[0]] }))
+      setNewProduct({ name: '', unit: 'kg', current_price: '', alert_threshold: 10 })
+      setAddProductFor(null)
     }
+    setLoading(false)
   }
 
-  const categoryColors = {
-    'Meat': '#fef2f2', 'Vegetables': '#f0fdf4',
-    'Oil': '#fffbeb', 'Dairy': '#eff6ff',
-    'Beverages': '#faf5ff', 'Spices': '#fff7ed',
-  }
-
-  const categoryEmojis = {
-    'Meat': '🥩', 'Vegetables': '🥦', 'Oil': '🛢️',
-    'Dairy': '🥛', 'Beverages': '🍺', 'Spices': '🧂',
+  async function deleteProduct(supplierId, productId) {
+    await supabase.from('products').delete().eq('id', productId)
+    setProducts(p => ({ ...p, [supplierId]: p[supplierId].filter(x => x.id !== productId) }))
   }
 
   if (!user) return null
 
+  const inputStyle = { width: '100%', padding: '10px 14px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '13px', outline: 'none', background: 'white', boxSizing: 'border-box', color: '#111' }
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }} className="bg-[#F7F4EF]">
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#F0EDE8' }}>
       <Navbar user={user} />
 
-      <main style={{ flex: 1, overflowX: 'hidden', padding: '32px' }}>
+      <main style={{ flex: 1, overflowX: 'hidden', padding: '24px', paddingBottom: '100px' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#111' }}>Suppliers & Products</h1>
-            <p style={{ color: '#9ca3af', fontSize: '14px', marginTop: '4px' }}>Click a supplier to see and manage their products</p>
+            <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#111', fontFamily: clash, marginBottom: '4px' }}>Suppliers & Products</h1>
+            <p style={{ color: '#9ca3af', fontSize: '13px' }}>Tap a supplier to manage their products</p>
           </div>
           <button
-            onClick={() => { setShowAddSupplier(true); setEditingSupplier(null); setSupplierForm({ name: '', phone: '', category: '', notes: '' }) }}
-            style={{ background: '#1A6B3C', color: 'white', fontWeight: 700, padding: '12px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '14px', transition: 'opacity 0.15s' }}
-            onMouseEnter={e => e.target.style.opacity = '0.85'}
-            onMouseLeave={e => e.target.style.opacity = '1'}
+            onClick={() => setShowAddSupplier(!showAddSupplier)}
+            style={{ background: showAddSupplier ? '#f3f4f6' : '#0C3D22', color: showAddSupplier ? '#374151' : 'white', border: 'none', borderRadius: '12px', padding: '11px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: clash, transition: 'all 0.15s' }}
           >
-            + Add Supplier
+            {showAddSupplier ? '✕ Cancel' : '+ Add Supplier'}
           </button>
         </div>
 
         {/* Add Supplier Form */}
         {showAddSupplier && (
-          <div className="slide-down" style={{ background: 'white', borderRadius: '16px', padding: '24px', marginBottom: '24px', border: '2px solid #1A6B3C' }}>
-            <h3 style={{ fontWeight: 700, marginBottom: '16px', fontSize: '16px' }}>
-              {editingSupplier ? '✏️ Edit Supplier' : '+ New Supplier'}
-            </h3>
-            <form onSubmit={handleSupplierSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                <input value={supplierForm.name} onChange={e => setSupplierForm(p => ({ ...p, name: e.target.value }))} placeholder="Supplier name *" style={{ padding: '10px 14px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', transition: 'border 0.15s' }} required />
-                <input value={supplierForm.phone} onChange={e => setSupplierForm(p => ({ ...p, phone: e.target.value }))} placeholder="Phone (+250...)" style={{ padding: '10px 14px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
-                <input value={supplierForm.category} onChange={e => setSupplierForm(p => ({ ...p, category: e.target.value }))} placeholder="Category (Meat, Vegetables...)" style={{ padding: '10px 14px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
-                <input value={supplierForm.notes} onChange={e => setSupplierForm(p => ({ ...p, notes: e.target.value }))} placeholder="Notes (optional)" style={{ padding: '10px 14px', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
+          <div className="slide-down" style={{ background: 'white', borderRadius: '20px', padding: '24px', marginBottom: '20px', border: '1.5px solid #1A6B3C', boxShadow: '0 4px 20px rgba(26,107,60,0.1)' }}>
+            <h3 style={{ fontWeight: 700, fontSize: '15px', marginBottom: '16px', color: '#111', fontFamily: clash }}>New Supplier</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>Name *</label>
+                <input value={newSupplier.name} onChange={e => setNewSupplier(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Marcy James" style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = '#1A6B3C'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
               </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" style={{ background: '#1A6B3C', color: 'white', fontWeight: 700, padding: '10px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>Save Supplier</button>
-                <button type="button" onClick={() => setShowAddSupplier(false)} style={{ background: '#f3f4f6', color: '#6b7280', fontWeight: 600, padding: '10px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>Phone</label>
+                <input value={newSupplier.phone} onChange={e => setNewSupplier(p => ({ ...p, phone: e.target.value }))} placeholder="+250 7XX XXX XXX" style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = '#1A6B3C'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
               </div>
-            </form>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>Category</label>
+                <select value={newSupplier.category} onChange={e => setNewSupplier(p => ({ ...p, category: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
+                  {Object.keys(categoryConfig).map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>Notes</label>
+                <input value={newSupplier.notes} onChange={e => setNewSupplier(p => ({ ...p, notes: e.target.value }))} placeholder="Optional" style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = '#1A6B3C'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={saveSupplier} disabled={loading} style={{ background: '#0C3D22', color: 'white', border: 'none', borderRadius: '10px', padding: '11px 20px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: clash }}>
+                {loading ? 'Saving...' : '✓ Save Supplier'}
+              </button>
+              <button onClick={() => setShowAddSupplier(false)} style={{ background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '10px', padding: '11px 16px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
+            </div>
           </div>
         )}
 
         {/* Empty state */}
         {suppliers.length === 0 && (
-          <div style={{ background: 'white', borderRadius: '16px', padding: '64px', textAlign: 'center' }}>
+          <div style={{ background: 'white', borderRadius: '20px', padding: '64px 24px', textAlign: 'center', border: '1px solid #ede9e4' }}>
             <p style={{ fontSize: '48px', marginBottom: '16px' }}>🏪</p>
-            <p style={{ fontWeight: 700, fontSize: '18px', color: '#111', marginBottom: '8px' }}>No suppliers yet</p>
-            <p style={{ color: '#9ca3af', fontSize: '14px' }}>Add your first supplier to get started</p>
+            <p style={{ fontWeight: 700, fontSize: '18px', color: '#111', marginBottom: '8px', fontFamily: clash }}>No suppliers yet</p>
+            <p style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '24px' }}>Add your first supplier to get started</p>
+            <button onClick={() => setShowAddSupplier(true)} style={{ background: '#0C3D22', color: 'white', border: 'none', borderRadius: '12px', padding: '12px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: clash }}>
+              + Add First Supplier
+            </button>
           </div>
         )}
 
         {/* Supplier Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {suppliers.map((supplier, index) => {
-            const isExpanded = expandedSupplier === supplier.id
-            const emoji = categoryEmojis[supplier.category] || '🏪'
-            const bg = categoryColors[supplier.category] || '#f9fafb'
+            const config = categoryConfig[supplier.category] || categoryConfig.Other
+            const isExpanded = expandedId === supplier.id
             const supplierProducts = products[supplier.id] || []
 
             return (
-              <div
-                key={supplier.id}
-                className="fade-in-row"
-                style={{
-                  background: 'white',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  border: isExpanded ? '1.5px solid #1A6B3C' : '1px solid #f0f0f0',
-                  boxShadow: isExpanded ? '0 4px 24px rgba(26,107,60,0.1)' : '0 1px 4px rgba(0,0,0,0.04)',
-                  transition: 'all 0.25s ease',
-                  animationDelay: `${index * 0.05}s`,
-                  animationFillMode: 'both'
-                }}
-              >
+              <div key={supplier.id} className="fade-in-row" style={{ animationDelay: `${index * 0.05}s`, background: 'white', borderRadius: '20px', overflow: 'hidden', border: isExpanded ? '1.5px solid #1A6B3C' : '1px solid #ede9e4', transition: 'all 0.2s', boxShadow: isExpanded ? '0 8px 28px rgba(26,107,60,0.12)' : '0 2px 8px rgba(0,0,0,0.04)' }}>
+
                 {/* Supplier Row */}
                 <div
-                  onClick={() => toggleSupplier(supplier.id)}
-                  style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', cursor: 'pointer', gap: '16px' }}
+                  onClick={() => toggleExpand(supplier)}
+                  style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', cursor: 'pointer', gap: '14px', transition: 'background 0.15s' }}
+                  onMouseEnter={e => !isExpanded && (e.currentTarget.style.background = '#fafaf9')}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <div style={{ width: '44px', height: '44px', background: bg, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>
-                    {emoji}
+                  <div style={{ width: '44px', height: '44px', background: config.bg, borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', border: `1px solid ${config.border}`, flexShrink: 0 }}>
+                    {config.icon}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontWeight: 700, fontSize: '15px', color: '#111' }}>{supplier.name}</p>
-                    <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '2px' }}>
-                      {supplier.category && `${supplier.category} · `}{supplier.phone}
-                    </p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <p style={{ fontWeight: 700, fontSize: '15px', color: '#111', fontFamily: clash }}>{supplier.name}</p>
+                      <span style={{ background: config.badge, color: config.badgeText, fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>{supplier.category}</span>
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>{supplier.phone || 'No phone'}</p>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <button
-                      onClick={e => { e.stopPropagation(); setEditingSupplier(supplier.id); setSupplierForm({ name: supplier.name, phone: supplier.phone, category: supplier.category, notes: supplier.notes }); setShowAddSupplier(true) }}
-                      style={{ fontSize: '12px', padding: '5px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#6b7280', transition: 'all 0.15s' }}
-                    >Edit</button>
-                    <button
-                      onClick={e => { e.stopPropagation(); handleDeleteSupplier(supplier.id) }}
-                      style={{ fontSize: '12px', padding: '5px 10px', borderRadius: '8px', border: '1px solid #fecaca', background: 'white', cursor: 'pointer', color: '#ef4444', transition: 'all 0.15s' }}
-                    >Delete</button>
-                    <span style={{
-                      fontSize: '12px',
-                      color: '#9ca3af',
-                      marginLeft: '4px',
-                      display: 'inline-block',
-                      transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.25s ease'
-                    }}>▼</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    <button onClick={e => { e.stopPropagation(); deleteSupplier(supplier.id) }} style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+                    <span style={{ color: '#9ca3af', fontSize: '18px', transition: 'transform 0.25s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', display: 'inline-block' }}>⌄</span>
                   </div>
                 </div>
 
-                {/* Products — animated expand */}
+                {/* Expanded Products */}
                 {isExpanded && (
-                  <div className="slide-down" style={{ borderTop: '1px solid #f3f4f6', background: '#fafafa' }}>
+                  <div className="slide-down" style={{ borderTop: '1px solid #f0fdf4', background: '#fafff9' }}>
+                    <div style={{ padding: '16px 20px' }}>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#1A6B3C', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '12px' }}>
+                        Products ({supplierProducts.length})
+                      </p>
 
-                    {supplierProducts.length === 0 && showAddProduct !== supplier.id && (
-                      <div style={{ padding: '20px 24px', textAlign: 'center' }}>
-                        <p style={{ color: '#9ca3af', fontSize: '13px' }}>No products yet — add one below</p>
-                      </div>
-                    )}
+                      {supplierProducts.length === 0 && !addProductFor && (
+                        <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '12px' }}>No products yet — add one below</p>
+                      )}
 
-                    {supplierProducts.map((product, pIndex) => (
-                      <div
-                        key={product.id}
-                        className="fade-in-row"
-                        style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          padding: '12px 20px', borderBottom: '1px solid #f0f0f0',
-                          animationDelay: `${pIndex * 0.06}s`,
-                          animationFillMode: 'both'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '8px', height: '8px', background: '#1A6B3C', borderRadius: '50%', flexShrink: 0 }}></div>
-                          <div>
-                            <p style={{ fontWeight: 600, fontSize: '14px', color: '#111' }}>{product.name}</p>
-                            <p style={{ fontSize: '12px', color: '#9ca3af' }}>{product.unit} · Alert at {product.alert_threshold}%</p>
+                      {supplierProducts.map((product, pIndex) => (
+                        <div key={product.id} className="fade-in-row" style={{ animationDelay: `${pIndex * 0.06}s`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'white', borderRadius: '12px', marginBottom: '8px', border: '1px solid #e9fce9', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '8px', height: '8px', background: '#25D366', borderRadius: '50%', flexShrink: 0 }}></div>
+                            <div>
+                              <p style={{ fontWeight: 600, fontSize: '13px', color: '#111', fontFamily: clash }}>{product.name}</p>
+                              <p style={{ fontSize: '11px', color: '#9ca3af' }}>per {product.unit} · alert at {product.alert_threshold}%</p>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <p style={{ fontWeight: 700, fontSize: '14px', color: '#1A6B3C', fontFamily: clash }}>RWF {Number(product.current_price).toLocaleString()}</p>
+                            <button onClick={() => deleteProduct(supplier.id, product.id)} style={{ background: 'none', border: 'none', color: '#d1d5db', cursor: 'pointer', fontSize: '16px', padding: '2px 6px' }}>×</button>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <p style={{ fontWeight: 700, fontSize: '14px', color: '#1A6B3C' }}>RWF {Number(product.current_price).toLocaleString()}</p>
-                          <button
-                            onClick={() => handleDeleteProduct(product.id, supplier.id)}
-                            style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #fecaca', background: 'white', cursor: 'pointer', color: '#ef4444' }}
-                          >✕</button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
 
-                    {/* Add Product */}
-                    {showAddProduct === supplier.id ? (
-                      <form onSubmit={e => handleProductSubmit(e, supplier.id)} className="slide-down" style={{ padding: '16px 20px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', background: '#f0fdf4' }}>
-                        <input value={productForm.name} onChange={e => setProductForm(p => ({ ...p, name: e.target.value }))} placeholder="Product name *" style={{ padding: '8px 12px', border: '1.5px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', outline: 'none', flex: 1, minWidth: '140px' }} required />
-                        <input value={productForm.unit} onChange={e => setProductForm(p => ({ ...p, unit: e.target.value }))} placeholder="Unit (kg, L...)" style={{ padding: '8px 12px', border: '1.5px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', outline: 'none', width: '100px' }} />
-                        <input value={productForm.current_price} onChange={e => setProductForm(p => ({ ...p, current_price: e.target.value }))} placeholder="Price (RWF) *" type="number" style={{ padding: '8px 12px', border: '1.5px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', outline: 'none', width: '120px' }} required />
-                        <input value={productForm.alert_threshold} onChange={e => setProductForm(p => ({ ...p, alert_threshold: e.target.value }))} placeholder="Alert %" type="number" style={{ padding: '8px 12px', border: '1.5px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', outline: 'none', width: '80px' }} />
-                        <button type="submit" style={{ background: '#1A6B3C', color: 'white', fontWeight: 700, padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Add</button>
-                        <button type="button" onClick={() => setShowAddProduct(null)} style={{ background: '#f3f4f6', color: '#6b7280', fontWeight: 600, padding: '8px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
-                      </form>
-                    ) : (
-                      <div style={{ padding: '14px 20px' }}>
-                        <button
-                          onClick={() => setShowAddProduct(supplier.id)}
-                          style={{ fontSize: '13px', color: '#1A6B3C', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
-                        >+ Add Product</button>
-                      </div>
-                    )}
+                      {/* Add Product Form */}
+                      {addProductFor === supplier.id ? (
+                        <div style={{ background: 'white', borderRadius: '14px', padding: '16px', border: '1.5px solid #1A6B3C', marginTop: '8px' }}>
+                          <p style={{ fontSize: '12px', fontWeight: 700, color: '#1A6B3C', marginBottom: '12px', fontFamily: clash }}>New Product</p>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+                            <div>
+                              <label style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '4px' }}>NAME *</label>
+                              <input value={newProduct.name} onChange={e => setNewProduct(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Tomatoes" style={{ ...inputStyle, padding: '9px 12px' }}
+                                onFocus={e => e.target.style.borderColor = '#1A6B3C'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '4px' }}>UNIT</label>
+                              <select value={newProduct.unit} onChange={e => setNewProduct(p => ({ ...p, unit: e.target.value }))} style={{ ...inputStyle, padding: '9px 12px', cursor: 'pointer' }}>
+                                {['kg', 'g', 'L', 'ml', 'pcs', 'box', 'bag', 'crate'].map(u => <option key={u}>{u}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '4px' }}>PRICE (RWF) *</label>
+                              <input type="number" value={newProduct.current_price} onChange={e => setNewProduct(p => ({ ...p, current_price: e.target.value }))} placeholder="e.g. 4000" style={{ ...inputStyle, padding: '9px 12px' }}
+                                onFocus={e => e.target.style.borderColor = '#1A6B3C'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '4px' }}>ALERT %</label>
+                              <input type="number" value={newProduct.alert_threshold} onChange={e => setNewProduct(p => ({ ...p, alert_threshold: e.target.value }))} placeholder="10" style={{ ...inputStyle, padding: '9px 12px' }}
+                                onFocus={e => e.target.style.borderColor = '#1A6B3C'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => saveProduct(supplier.id)} disabled={loading} style={{ background: '#1A6B3C', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: clash }}>
+                              {loading ? 'Saving...' : '✓ Save Product'}
+                            </button>
+                            <button onClick={() => setAddProductFor(null)} style={{ background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '10px', padding: '10px 14px', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button onClick={() => setAddProductFor(supplier.id)} style={{ width: '100%', background: 'white', border: '1.5px dashed #bbf7d0', borderRadius: '12px', padding: '11px', fontSize: '13px', fontWeight: 600, color: '#1A6B3C', cursor: 'pointer', marginTop: '4px', transition: 'all 0.15s', fontFamily: clash }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.borderColor = '#1A6B3C' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#bbf7d0' }}
+                        >
+                          + Add Product
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
             )
           })}
         </div>
+
       </main>
     </div>
   )

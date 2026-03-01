@@ -5,8 +5,11 @@ import { supabase } from '../lib/supabase'
 import Navbar from '../components/Navbar'
 import Link from 'next/link'
 
+const clash = "'Clash Display', sans-serif"
+
 export default function Dashboard() {
   const [user, setUser] = useState(null)
+  const [profile, setProfile] = useState(null)
   const [supplierCount, setSupplierCount] = useState(0)
   const [productCount, setProductCount] = useState(0)
   const [ordersCount, setOrdersCount] = useState(0)
@@ -20,11 +23,11 @@ export default function Dashboard() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { window.location.href = '/login'; return }
     setUser(user)
-    await fetchMetrics()
-    setLoading(false)
-  }
 
-  const fetchMetrics = async () => {
+    const { data: profileData } = await supabase
+      .from('profiles').select('*').eq('id', user.id).single()
+    setProfile(profileData)
+
     const { count: supplierTotal } = await supabase
       .from('suppliers').select('*', { count: 'exact', head: true })
     setSupplierCount(supplierTotal || 0)
@@ -33,55 +36,77 @@ export default function Dashboard() {
       .from('products').select('*', { count: 'exact', head: true })
     setProductCount(productTotal || 0)
 
-    const firstDayOfMonth = new Date()
-    firstDayOfMonth.setDate(1)
-    firstDayOfMonth.setHours(0, 0, 0, 0)
+    const firstDay = new Date()
+    firstDay.setDate(1); firstDay.setHours(0, 0, 0, 0)
 
     const { data: ordersThisMonth } = await supabase
-      .from('orders').select('total_amount')
-      .gte('created_at', firstDayOfMonth.toISOString())
-
+      .from('orders').select('total_amount').gte('created_at', firstDay.toISOString())
     setOrdersCount(ordersThisMonth?.length || 0)
-    setMonthlySpend(ordersThisMonth?.reduce((sum, o) => sum + Number(o.total_amount), 0) || 0)
+    setMonthlySpend(ordersThisMonth?.reduce((s, o) => s + Number(o.total_amount), 0) || 0)
 
     const { data: recent } = await supabase
-      .from('orders')
-      .select('id, total_amount, status, created_at, suppliers(name)')
-      .order('created_at', { ascending: false })
-      .limit(5)
-
+      .from('orders').select('id, total_amount, status, created_at, suppliers(name)')
+      .order('created_at', { ascending: false }).limit(5)
     setRecentOrders(recent || [])
+    setLoading(false)
+  }
+
+  const getGreeting = () => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 17) return 'Good afternoon'
+    return 'Good evening'
   }
 
   if (!user) return null
 
   const stats = [
-    { label: 'Suppliers', value: supplierCount, icon: '🏪', color: 'bg-[#1A6B3C]', href: '/suppliers' },
-    { label: 'Products', value: productCount, icon: '📦', color: 'bg-blue-600', href: '/suppliers' },
-    { label: 'Orders This Month', value: ordersCount, icon: '📋', color: 'bg-orange-500', href: '/orders' },
-    { label: 'Monthly Spend (RWF)', value: monthlySpend.toLocaleString(), icon: '💰', color: 'bg-purple-600', href: '/orders' },
+    { label: 'Suppliers', value: supplierCount, emoji: '🏪', bg: 'linear-gradient(135deg, #1A6B3C, #166534)', href: '/suppliers' },
+    { label: 'Products', value: productCount, emoji: '📦', bg: 'linear-gradient(135deg, #2563eb, #1d4ed8)', href: '/suppliers' },
+    { label: 'Orders This Month', value: ordersCount, emoji: '📋', bg: 'linear-gradient(135deg, #f97316, #ea580c)', href: '/orders' },
+    { label: 'Monthly Spend', value: `${monthlySpend.toLocaleString()} RWF`, emoji: '💰', bg: 'linear-gradient(135deg, #7c3aed, #6d28d9)', href: '/orders' },
   ]
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }} className="bg-[#F7F4EF]">
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#F0EDE8' }}>
       <Navbar user={user} />
 
-      <main style={{ flex: 1, overflowX: 'hidden', padding: '32px' }}>
+      <main style={{ flex: 1, overflowX: 'hidden', padding: '24px', paddingBottom: '100px' }}>
 
         {/* Hero */}
-        <div style={{ background: '#0C3D22', borderRadius: '24px', padding: '40px', marginBottom: '32px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: '-80px', right: '-80px', width: '250px', height: '250px', background: '#1A6B3C', borderRadius: '50%', opacity: 0.3 }}></div>
-          <div style={{ position: 'absolute', bottom: '-60px', left: '35%', width: '150px', height: '150px', background: '#1A6B3C', borderRadius: '50%', opacity: 0.2 }}></div>
+        <div style={{
+          background: 'linear-gradient(135deg, #071f12 0%, #0C3D22 50%, #1A6B3C 100%)',
+          borderRadius: '24px', padding: '36px 32px', marginBottom: '24px',
+          position: 'relative', overflow: 'hidden',
+          boxShadow: '0 8px 32px rgba(12,61,34,0.25)'
+        }}>
+          {/* Decorative circles */}
+          <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '220px', height: '220px', background: 'rgba(37,211,102,0.08)', borderRadius: '50%', border: '1px solid rgba(37,211,102,0.1)' }}></div>
+          <div style={{ position: 'absolute', bottom: '-40px', right: '15%', width: '140px', height: '140px', background: 'rgba(37,211,102,0.05)', borderRadius: '50%' }}></div>
+          <div style={{ position: 'absolute', top: '20px', right: '20%', width: '6px', height: '6px', background: '#25D366', borderRadius: '50%', opacity: 0.6 }}></div>
+          <div style={{ position: 'absolute', top: '50px', right: '25%', width: '4px', height: '4px', background: '#4ade80', borderRadius: '50%', opacity: 0.4 }}></div>
+
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <p style={{ color: '#6ee7b7', fontSize: '14px', marginBottom: '8px' }}>Welcome back 👋</p>
-            <h1 style={{ color: 'white', fontSize: '36px', fontWeight: 800, marginBottom: '12px' }}>
-              {user.email.split('@')[0]}'s Dashboard
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(37,211,102,0.15)', border: '1px solid rgba(37,211,102,0.25)', borderRadius: '20px', padding: '4px 12px', marginBottom: '16px' }}>
+              <div style={{ width: '5px', height: '5px', background: '#4ade80', borderRadius: '50%' }}></div>
+              <span style={{ color: '#4ade80', fontSize: '11px', fontWeight: 600 }}>{getGreeting()} 👋</span>
+            </div>
+
+            <h1 style={{ color: 'white', fontSize: '32px', fontWeight: 700, marginBottom: '10px', fontFamily: clash, lineHeight: 1.1 }}>
+              {profile?.first_name ? `Welcome back, ${profile.first_name}!` : 'Welcome back!'}
             </h1>
-            <p style={{ color: '#a7f3d0', fontSize: '14px', marginBottom: '24px', maxWidth: '400px' }}>
-              Manage your suppliers, track prices, and send orders via WhatsApp in one tap.
+
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '24px', maxWidth: '380px', lineHeight: 1.6 }}>
+              {profile?.restaurant_name
+                ? `Managing suppliers for ${profile.restaurant_name} 🇷🇼`
+                : 'Manage your suppliers, track prices, and send orders via WhatsApp.'}
             </p>
+
             <Link href="/orders">
-              <button style={{ background: '#25D366', color: 'white', fontWeight: 700, padding: '12px 24px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button style={{ background: '#25D366', color: 'white', fontWeight: 700, padding: '12px 22px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '14px', display: 'inline-flex', alignItems: 'center', gap: '8px', fontFamily: clash, boxShadow: '0 4px 16px rgba(37,211,102,0.35)', transition: 'transform 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+              >
                 📲 New WhatsApp Order
               </button>
             </Link>
@@ -89,96 +114,84 @@ export default function Dashboard() {
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
-          {stats.map((stat) => (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '24px' }}>
+          {stats.map(stat => (
             <Link href={stat.href} key={stat.label}>
-              <div className={`${stat.color}`} style={{ borderRadius: '16px', padding: '20px', cursor: 'pointer', transition: 'opacity 0.2s' }}>
-                <div style={{ fontSize: '24px', marginBottom: '12px' }}>{stat.icon}</div>
-                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>{stat.label}</p>
-                <p style={{ color: 'white', fontSize: '32px', fontWeight: 800 }}>{loading ? '—' : stat.value}</p>
+              <div style={{ background: stat.bg, borderRadius: '18px', padding: '20px', cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', position: 'relative', overflow: 'hidden' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)' }}
+              >
+                <div style={{ position: 'absolute', bottom: '-20px', right: '-10px', fontSize: '56px', opacity: 0.15 }}>{stat.emoji}</div>
+                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '8px' }}>{stat.label}</p>
+                <p style={{ color: 'white', fontSize: '28px', fontWeight: 800, fontFamily: clash }}>{loading ? '—' : stat.value}</p>
               </div>
             </Link>
           ))}
         </div>
 
         {/* Quick Actions */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
-          <Link href="/suppliers">
-            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #f0f0f0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '40px', height: '40px', background: '#f0fdf4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>🏪</div>
-              <div>
-                <p style={{ fontWeight: 600, fontSize: '14px', color: '#111' }}>Manage Suppliers</p>
-                <p style={{ fontSize: '12px', color: '#9ca3af' }}>Add or edit suppliers</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+          {[
+            { href: '/suppliers', icon: '🏪', label: 'Suppliers', sub: 'Add or edit', color: '#f0fdf4', border: '#bbf7d0' },
+            { href: '/suppliers', icon: '📦', label: 'Products', sub: 'Manage stock', color: '#eff6ff', border: '#bfdbfe' },
+            { href: '/orders', icon: '📲', label: 'New Order', sub: 'Via WhatsApp', color: '#f0fdf4', border: '#bbf7d0' },
+          ].map((a, i) => (
+            <Link href={a.href} key={i}>
+              <div style={{ background: 'white', borderRadius: '16px', padding: '16px 12px', border: `1px solid ${a.border}`, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.08)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)' }}
+              >
+                <div style={{ width: '40px', height: '40px', background: a.color, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', margin: '0 auto 10px' }}>{a.icon}</div>
+                <p style={{ fontWeight: 700, fontSize: '13px', color: '#111', fontFamily: clash }}>{a.label}</p>
+                <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>{a.sub}</p>
               </div>
-            </div>
-          </Link>
-          <Link href="/suppliers">
-            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #f0f0f0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '40px', height: '40px', background: '#eff6ff', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>📦</div>
-              <div>
-                <p style={{ fontWeight: 600, fontSize: '14px', color: '#111' }}>Manage Products</p>
-                <p style={{ fontSize: '12px', color: '#9ca3af' }}>Track prices per supplier</p>
-              </div>
-            </div>
-          </Link>
-          <Link href="/orders">
-            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #f0f0f0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '40px', height: '40px', background: '#f0fdf4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>📲</div>
-              <div>
-                <p style={{ fontWeight: 600, fontSize: '14px', color: '#111' }}>New Order</p>
-                <p style={{ fontSize: '12px', color: '#9ca3af' }}>Send via WhatsApp</p>
-              </div>
-            </div>
-          </Link>
+            </Link>
+          ))}
         </div>
 
         {/* Recent Orders */}
-        <div style={{ background: 'white', borderRadius: '16px', overflow: 'hidden', border: '1px solid #f0f0f0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #f9f9f9' }}>
-            <h2 style={{ fontWeight: 700, fontSize: '16px', color: '#111' }}>Recent Orders</h2>
+        <div style={{ background: 'white', borderRadius: '20px', overflow: 'hidden', border: '1px solid #ede9e4', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f5f3f0' }}>
+            <h2 style={{ fontWeight: 700, fontSize: '16px', color: '#111', fontFamily: clash }}>Recent Orders</h2>
             <Link href="/orders">
-              <span style={{ fontSize: '13px', color: '#1A6B3C', fontWeight: 600 }}>View All →</span>
+              <span style={{ fontSize: '13px', color: '#1A6B3C', fontWeight: 600, cursor: 'pointer' }}>View All →</span>
             </Link>
           </div>
 
           {loading && (
-            <div style={{ padding: '48px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>Loading...</div>
+            <div style={{ padding: '40px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>Loading...</div>
           )}
 
           {!loading && recentOrders.length === 0 && (
-            <div style={{ padding: '64px 24px', textAlign: 'center' }}>
-              <p style={{ fontSize: '48px', marginBottom: '16px' }}>📋</p>
-              <p style={{ fontWeight: 700, fontSize: '18px', color: '#111', marginBottom: '8px' }}>No orders yet</p>
-              <p style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '24px' }}>Create your first order to start tracking</p>
+            <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+              <p style={{ fontSize: '44px', marginBottom: '12px' }}>📋</p>
+              <p style={{ fontWeight: 700, fontSize: '17px', color: '#111', marginBottom: '6px', fontFamily: clash }}>No orders yet</p>
+              <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '20px' }}>Create your first order to start tracking</p>
               <Link href="/orders">
-                <button style={{ background: '#25D366', color: 'white', fontWeight: 700, padding: '12px 24px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+                <button style={{ background: '#25D366', color: 'white', fontWeight: 700, padding: '11px 22px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '14px', fontFamily: clash }}>
                   📲 Create First Order
                 </button>
               </Link>
             </div>
           )}
 
-          {recentOrders.map(order => (
-            <div key={order.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #fafafa' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ width: '40px', height: '40px', background: '#f0fdf4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🏪</div>
+          {recentOrders.map((order, i) => (
+            <div key={order.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: i < recentOrders.length - 1 ? '1px solid #f9f7f5' : 'none', transition: 'background 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#fafaf9'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ width: '40px', height: '40px', background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', border: '1px solid #bbf7d0' }}>🏪</div>
                 <div>
-                  <p style={{ fontWeight: 600, fontSize: '14px', color: '#111' }}>{order.suppliers?.name}</p>
+                  <p style={{ fontWeight: 600, fontSize: '14px', color: '#111', fontFamily: clash }}>{order.suppliers?.name}</p>
                   <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
                     {new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ fontWeight: 700, fontSize: '14px', color: '#111' }}>RWF {Number(order.total_amount).toLocaleString()}</p>
-                <span style={{
-                  fontSize: '11px',
-                  padding: '2px 8px',
-                  borderRadius: '20px',
-                  fontWeight: 500,
-                  background: order.status === 'sent' ? '#dcfce7' : '#f3f4f6',
-                  color: order.status === 'sent' ? '#16a34a' : '#6b7280'
-                }}>
+                <p style={{ fontWeight: 700, fontSize: '14px', color: '#111', fontFamily: clash }}>RWF {Number(order.total_amount).toLocaleString()}</p>
+                <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, background: order.status === 'sent' ? '#dcfce7' : '#f3f4f6', color: order.status === 'sent' ? '#16a34a' : '#6b7280' }}>
                   {order.status}
                 </span>
               </div>
