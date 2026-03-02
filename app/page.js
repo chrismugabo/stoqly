@@ -1,7 +1,7 @@
  'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const clash = "'Clash Display', sans-serif"
 
@@ -54,7 +54,7 @@ const content = {
     badge: 'Conçu pour les restaurants de Kigali 🇷🇼',
     h1a: 'Votre fournisseur', h1b: 'a augmenté ses prix.', h1c: 'Vous le saviez?',
     sub1: "La plupart des restaurants de Kigali perdent de l'argent sur des hausses de prix qu'ils n'ont pas vues venir.",
-    sub2: 'Stoqly suit vos prix, vous alerte dès qu\'ils changent, et envoie vos commandes via WhatsApp en un clic.',
+    sub2: "Stoqly suit vos prix, vous alerte dès qu'ils changent, et envoie vos commandes via WhatsApp en un clic.",
     cta1: 'Commencer Gratuitement', cta2: 'Se Connecter',
     trust: 'Utilisé par des restaurants à Kigali',
     mockup: { greeting: 'Bonjour 👋', title: "Vue d'ensemble", alert: 'Tomates — Fresh Greens', price: 'RWF 800 → RWF 1,100/kg', btn: '📲 Envoyer via WhatsApp', alertBadge: '🔔 Alerte Prix', alertSub: 'Huile de cuisson +18%' },
@@ -73,7 +73,7 @@ const content = {
     features: [
       { icon: '📲', title: 'Commandes WhatsApp', desc: 'Générez un message de commande formaté et envoyez-le à votre fournisseur en un clic.' },
       { icon: '📈', title: 'Suivi des Prix', desc: "Chaque commande enregistre automatiquement les prix actuels. Consultez l'historique complet." },
-      { icon: '🔔', title: 'Alertes de Prix', desc: 'Définissez un seuil par produit. Soyez alerté dès qu\'un fournisseur dépasse ce seuil.' },
+      { icon: '🔔', title: 'Alertes de Prix', desc: "Définissez un seuil par produit. Soyez alerté dès qu'un fournisseur dépasse ce seuil." },
       { icon: '🏪', title: 'Gestion Fournisseurs', desc: 'Tous vos fournisseurs au même endroit. Téléphones, catégories, produits, historique.' },
       { icon: '📊', title: 'Rapports de Dépenses', desc: 'Voyez exactement combien vous dépensez par fournisseur chaque mois.' },
       { icon: '🔒', title: 'Vos données uniquement', desc: "Isolation complète des données. Personne d'autre ne peut voir vos informations." },
@@ -96,48 +96,57 @@ const statColors = ['#1A6B3C', '#2563eb', '#f97316', '#7c3aed']
 
 export default function Home() {
   const [lang, setLang] = useState('en')
+  const [isMobile, setIsMobile] = useState(false)
   const t = content[lang]
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   return (
     <main style={{ minHeight: '100vh', background: '#0C3D22', color: 'white', fontFamily: 'DM Sans, sans-serif', overflowX: 'hidden' }}>
 
       {/* NAV */}
-      <header style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header style={{ maxWidth: '1100px', margin: '0 auto', padding: isMobile ? '16px 20px' : '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ width: '32px', height: '32px', background: '#1A6B3C', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '16px', fontFamily: clash }}>S</div>
           <span style={{ fontWeight: 700, fontSize: '20px', letterSpacing: '-0.5px', fontFamily: clash }}>Stoqly</span>
         </div>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '4px', gap: '2px' }}>
+        <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', alignItems: 'center' }}>
+          {/* Language Toggle */}
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '3px', gap: '2px' }}>
             {(['en', 'fr']).map(l => (
-              <button key={l} onClick={() => setLang(l)} style={{ padding: '5px 12px', borderRadius: '7px', border: 'none', background: lang === l ? '#1A6B3C' : 'transparent', color: lang === l ? 'white' : 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', fontFamily: clash }}>
+              <button key={l} onClick={() => setLang(l)} style={{ padding: isMobile ? '4px 8px' : '5px 12px', borderRadius: '7px', border: 'none', background: lang === l ? '#1A6B3C' : 'transparent', color: lang === l ? 'white' : 'rgba(255,255,255,0.5)', fontSize: '11px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', fontFamily: clash }}>
                 {content[l].flag} {content[l].lang}
               </button>
             ))}
           </div>
-          <Link href="/login"><span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', cursor: 'pointer' }}>{t.nav.login}</span></Link>
-          <Link href="/signup"><span style={{ background: '#25D366', color: 'white', padding: '10px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: clash }}>{t.nav.cta}</span></Link>
+          {!isMobile && <Link href="/login"><span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', cursor: 'pointer' }}>{t.nav.login}</span></Link>}
+          <Link href="/signup"><span style={{ background: '#25D366', color: 'white', padding: isMobile ? '8px 14px' : '10px 20px', borderRadius: '10px', fontSize: isMobile ? '12px' : '14px', fontWeight: 700, cursor: 'pointer', fontFamily: clash, whiteSpace: 'nowrap' }}>{isMobile ? 'Start Free' : t.nav.cta}</span></Link>
         </div>
       </header>
 
       {/* HERO */}
-      <section style={{ maxWidth: '1100px', margin: '0 auto', padding: '80px 32px 100px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
+      <section style={{ maxWidth: '1100px', margin: '0 auto', padding: isMobile ? '40px 20px 60px' : '80px 32px 100px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '40px' : '80px', alignItems: 'center' }}>
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(37,211,102,0.15)', border: '1px solid rgba(37,211,102,0.3)', borderRadius: '20px', padding: '6px 14px', marginBottom: '28px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(37,211,102,0.15)', border: '1px solid rgba(37,211,102,0.3)', borderRadius: '20px', padding: '6px 14px', marginBottom: '24px' }}>
             <div style={{ width: '6px', height: '6px', background: '#25D366', borderRadius: '50%' }}></div>
             <span style={{ color: '#25D366', fontSize: '12px', fontWeight: 600 }}>{t.badge}</span>
           </div>
 
-          <h1 style={{ fontSize: '52px', fontWeight: 700, lineHeight: 1.05, marginBottom: '24px', letterSpacing: '-1.5px', fontFamily: clash }}>
+          <h1 style={{ fontSize: isMobile ? '40px' : '52px', fontWeight: 700, lineHeight: 1.05, marginBottom: '20px', letterSpacing: '-1.5px', fontFamily: clash }}>
             {t.h1a}<br />
             <span style={{ color: '#25D366' }}>{t.h1b}</span><br />
             {t.h1c}
           </h1>
 
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '16px', lineHeight: 1.7, marginBottom: '12px', maxWidth: '420px' }}>{t.sub1}</p>
-          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '15px', lineHeight: 1.7, marginBottom: '40px', maxWidth: '420px' }}>{t.sub2}</p>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: isMobile ? '15px' : '16px', lineHeight: 1.7, marginBottom: '10px', maxWidth: '420px' }}>{t.sub1}</p>
+          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: isMobile ? '14px' : '15px', lineHeight: 1.7, marginBottom: '32px', maxWidth: '420px' }}>{t.sub2}</p>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <Link href="/signup">
               <span style={{ background: '#25D366', color: 'white', padding: '14px 28px', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', display: 'inline-block', fontFamily: clash }}>{t.cta1}</span>
             </Link>
@@ -146,7 +155,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div style={{ marginTop: '48px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ marginTop: '40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ display: 'flex' }}>
               {['C','M','A','J'].map((letter, i) => (
                 <div key={i} style={{ width: '32px', height: '32px', borderRadius: '50%', background: ['#1A6B3C','#25D366','#0d5c33','#1e8449'][i], border: '2px solid #0C3D22', marginLeft: i > 0 ? '-8px' : '0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700 }}>{letter}</div>
@@ -156,54 +165,67 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Mockup */}
-        <div style={{ position: 'relative' }}>
-          <div style={{ background: '#F7F4EF', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.4)' }}>
-            <div style={{ background: '#0C3D22', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {[0,1,2].map(i => <div key={i} style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }}></div>)}
-              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginLeft: '8px' }}>stoqly.app/dashboard</span>
-            </div>
-            <div style={{ padding: '24px' }}>
-              <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '4px' }}>{t.mockup.greeting}</p>
-              <p style={{ fontSize: '20px', fontWeight: 800, color: '#111', marginBottom: '20px', fontFamily: clash }}>{t.mockup.title}</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-                {t.stats.map((s, i) => (
-                  <div key={i} style={{ background: statColors[i], borderRadius: '12px', padding: '14px' }}>
-                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>{s.label}</p>
-                    <p style={{ color: 'white', fontSize: '26px', fontWeight: 800, fontFamily: clash }}>{s.value}</p>
-                  </div>
-                ))}
+        {/* Mockup — hidden on small mobile, shown on tablet+ */}
+        {!isMobile && (
+          <div style={{ position: 'relative' }}>
+            <div style={{ background: '#F7F4EF', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.4)' }}>
+              <div style={{ background: '#0C3D22', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {[0,1,2].map(i => <div key={i} style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }}></div>)}
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginLeft: '8px' }}>stoqly.app/dashboard</span>
               </div>
-              <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '12px 14px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <p style={{ fontSize: '12px', fontWeight: 700, color: '#c2410c' }}>⚠️ {t.mockup.alert}</p>
-                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>{t.mockup.price}</p>
+              <div style={{ padding: '24px' }}>
+                <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '4px' }}>{t.mockup.greeting}</p>
+                <p style={{ fontSize: '20px', fontWeight: 800, color: '#111', marginBottom: '20px', fontFamily: clash }}>{t.mockup.title}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                  {t.stats.map((s, i) => (
+                    <div key={i} style={{ background: statColors[i], borderRadius: '12px', padding: '14px' }}>
+                      <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>{s.label}</p>
+                      <p style={{ color: 'white', fontSize: '26px', fontWeight: 800, fontFamily: clash }}>{s.value}</p>
+                    </div>
+                  ))}
                 </div>
-                <span style={{ background: '#fef2f2', color: '#dc2626', fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px' }}>+37%</span>
+                <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '12px 14px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <p style={{ fontSize: '12px', fontWeight: 700, color: '#c2410c' }}>⚠️ {t.mockup.alert}</p>
+                    <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>{t.mockup.price}</p>
+                  </div>
+                  <span style={{ background: '#fef2f2', color: '#dc2626', fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px' }}>+37%</span>
+                </div>
+                <button style={{ width: '100%', background: '#25D366', color: 'white', border: 'none', borderRadius: '12px', padding: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: clash }}>{t.mockup.btn}</button>
               </div>
-              <button style={{ width: '100%', background: '#25D366', color: 'white', border: 'none', borderRadius: '12px', padding: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: clash }}>{t.mockup.btn}</button>
+            </div>
+            <div style={{ position: 'absolute', top: '-16px', right: '-16px', background: '#25D366', borderRadius: '12px', padding: '10px 14px', boxShadow: '0 8px 24px rgba(37,211,102,0.4)' }}>
+              <p style={{ color: 'white', fontSize: '11px', fontWeight: 700, fontFamily: clash }}>{t.mockup.alertBadge}</p>
+              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '10px' }}>{t.mockup.alertSub}</p>
             </div>
           </div>
-          <div style={{ position: 'absolute', top: '-16px', right: '-16px', background: '#25D366', borderRadius: '12px', padding: '10px 14px', boxShadow: '0 8px 24px rgba(37,211,102,0.4)' }}>
-            <p style={{ color: 'white', fontSize: '11px', fontWeight: 700, fontFamily: clash }}>{t.mockup.alertBadge}</p>
-            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '10px' }}>{t.mockup.alertSub}</p>
+        )}
+
+        {/* Mobile — show a simplified stat strip instead of full mockup */}
+        {isMobile && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+            {t.stats.map((s, i) => (
+              <div key={i} style={{ background: statColors[i], borderRadius: '14px', padding: '16px' }}>
+                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>{s.label}</p>
+                <p style={{ color: 'white', fontSize: '28px', fontWeight: 800, fontFamily: clash }}>{s.value}</p>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </section>
 
       {/* HOW IT WORKS */}
-      <section style={{ background: 'rgba(0,0,0,0.15)', padding: '100px 32px' }}>
+      <section style={{ background: 'rgba(0,0,0,0.15)', padding: isMobile ? '60px 20px' : '100px 32px' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '16px' }}>{t.howLabel}</p>
-          <h2 style={{ textAlign: 'center', fontSize: '38px', fontWeight: 700, marginBottom: '16px', letterSpacing: '-1px', fontFamily: clash }}>{t.howTitle}</h2>
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '16px', marginBottom: '64px' }}>{t.howSub}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', position: 'relative' }}>
-            <div style={{ position: 'absolute', top: '40px', left: '20%', right: '20%', height: '2px', background: 'linear-gradient(90deg, rgba(37,211,102,0.3), rgba(37,211,102,0.6), rgba(37,211,102,0.3))', zIndex: 0 }}></div>
+          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>{t.howLabel}</p>
+          <h2 style={{ textAlign: 'center', fontSize: isMobile ? '28px' : '38px', fontWeight: 700, marginBottom: '12px', letterSpacing: '-1px', fontFamily: clash }}>{t.howTitle}</h2>
+          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '15px', marginBottom: '48px' }}>{t.howSub}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px' }}>
             {t.steps.map((s, i) => (
-              <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '32px 28px', position: 'relative', zIndex: 1 }}>
-                <div style={{ width: '48px', height: '48px', background: '#1A6B3C', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', marginBottom: '20px' }}>{s.icon}</div>
-                <p style={{ color: '#25D366', fontSize: '12px', fontWeight: 700, marginBottom: '8px', letterSpacing: '1px' }}>{t.stepLabel} {s.step}</p>
-                <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '12px', fontFamily: clash }}>{s.title}</p>
+              <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '28px 24px' }}>
+                <div style={{ width: '48px', height: '48px', background: '#1A6B3C', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', marginBottom: '16px' }}>{s.icon}</div>
+                <p style={{ color: '#25D366', fontSize: '11px', fontWeight: 700, marginBottom: '8px', letterSpacing: '1px' }}>{t.stepLabel} {s.step}</p>
+                <p style={{ fontWeight: 700, fontSize: '17px', marginBottom: '10px', fontFamily: clash }}>{s.title}</p>
                 <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '14px', lineHeight: 1.7 }}>{s.desc}</p>
               </div>
             ))}
@@ -212,16 +234,16 @@ export default function Home() {
       </section>
 
       {/* FEATURES */}
-      <section style={{ padding: '100px 32px' }}>
+      <section style={{ padding: isMobile ? '60px 20px' : '100px 32px' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '16px' }}>{t.featLabel}</p>
-          <h2 style={{ textAlign: 'center', fontSize: '38px', fontWeight: 700, marginBottom: '60px', letterSpacing: '-1px', fontFamily: clash }}>{t.featTitle}</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>{t.featLabel}</p>
+          <h2 style={{ textAlign: 'center', fontSize: isMobile ? '28px' : '38px', fontWeight: 700, marginBottom: '48px', letterSpacing: '-1px', fontFamily: clash }}>{t.featTitle}</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '14px' }}>
             {t.features.map((f, i) => (
-              <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: '24px' }}>
-                <div style={{ fontSize: '28px', marginBottom: '14px' }}>{f.icon}</div>
-                <p style={{ fontWeight: 700, fontSize: '15px', marginBottom: '8px', fontFamily: clash }}>{f.title}</p>
-                <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', lineHeight: 1.6 }}>{f.desc}</p>
+              <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: isMobile ? '18px 16px' : '24px' }}>
+                <div style={{ fontSize: isMobile ? '24px' : '28px', marginBottom: '12px' }}>{f.icon}</div>
+                <p style={{ fontWeight: 700, fontSize: isMobile ? '13px' : '15px', marginBottom: '8px', fontFamily: clash }}>{f.title}</p>
+                {!isMobile && <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', lineHeight: 1.6 }}>{f.desc}</p>}
               </div>
             ))}
           </div>
@@ -229,39 +251,43 @@ export default function Home() {
       </section>
 
       {/* PRICING */}
-      <section style={{ background: 'rgba(0,0,0,0.15)', padding: '100px 32px' }}>
+      <section style={{ background: 'rgba(0,0,0,0.15)', padding: isMobile ? '60px 20px' : '100px 32px' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '16px' }}>{t.pricingLabel}</p>
-          <h2 style={{ textAlign: 'center', fontSize: '38px', fontWeight: 700, marginBottom: '16px', letterSpacing: '-1px', fontFamily: clash }}>{t.pricingTitle}</h2>
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '16px', marginBottom: '60px' }}>{t.pricingSub}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', maxWidth: '700px', margin: '0 auto' }}>
-            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '32px' }}>
+          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>{t.pricingLabel}</p>
+          <h2 style={{ textAlign: 'center', fontSize: isMobile ? '28px' : '38px', fontWeight: 700, marginBottom: '12px', letterSpacing: '-1px', fontFamily: clash }}>{t.pricingTitle}</h2>
+          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '15px', marginBottom: '40px' }}>{t.pricingSub}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px', maxWidth: '700px', margin: '0 auto' }}>
+
+            {/* Free */}
+            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '28px' }}>
               <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px', fontFamily: clash }}>{t.free.name}</p>
-              <p style={{ fontSize: '40px', fontWeight: 700, marginBottom: '4px', fontFamily: clash }}>{t.free.price}</p>
-              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '28px' }}>{t.free.period}</p>
+              <p style={{ fontSize: '36px', fontWeight: 700, marginBottom: '4px', fontFamily: clash }}>{t.free.price}</p>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '24px' }}>{t.free.period}</p>
               {t.free.features.map((f, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                   <span style={{ color: '#25D366' }}>✓</span>
                   <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>{f}</span>
                 </div>
               ))}
               <Link href="/signup">
-                <div style={{ marginTop: '28px', width: '100%', background: 'rgba(255,255,255,0.08)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', textAlign: 'center', fontFamily: clash }}>{t.free.cta}</div>
+                <div style={{ marginTop: '24px', width: '100%', background: 'rgba(255,255,255,0.08)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', textAlign: 'center', fontFamily: clash }}>{t.free.cta}</div>
               </Link>
             </div>
-            <div style={{ background: '#1A6B3C', border: '2px solid #25D366', borderRadius: '20px', padding: '32px', position: 'relative' }}>
+
+            {/* Pro */}
+            <div style={{ background: '#1A6B3C', border: '2px solid #25D366', borderRadius: '20px', padding: '28px', position: 'relative' }}>
               <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: '#25D366', color: 'white', fontSize: '11px', fontWeight: 700, padding: '4px 12px', borderRadius: '20px', fontFamily: clash, whiteSpace: 'nowrap' }}>{t.pro.badge}</div>
               <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px', fontFamily: clash }}>{t.pro.name}</p>
-              <p style={{ fontSize: '40px', fontWeight: 700, marginBottom: '4px', fontFamily: clash }}>{t.pro.price}</p>
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', marginBottom: '28px' }}>{t.pro.period}</p>
+              <p style={{ fontSize: '36px', fontWeight: 700, marginBottom: '4px', fontFamily: clash }}>{t.pro.price}</p>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', marginBottom: '24px' }}>{t.pro.period}</p>
               {t.pro.features.map((f, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                   <span style={{ color: '#25D366' }}>✓</span>
                   <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>{f}</span>
                 </div>
               ))}
               <Link href="/signup">
-                <div style={{ marginTop: '28px', width: '100%', background: '#25D366', color: 'white', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', textAlign: 'center', fontFamily: clash }}>{t.pro.cta}</div>
+                <div style={{ marginTop: '24px', width: '100%', background: '#25D366', color: 'white', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', textAlign: 'center', fontFamily: clash }}>{t.pro.cta}</div>
               </Link>
             </div>
           </div>
@@ -269,26 +295,26 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section style={{ maxWidth: '1100px', margin: '0 auto', padding: '100px 32px', textAlign: 'center' }}>
-        <div style={{ background: '#1A6B3C', borderRadius: '24px', padding: '64px 32px' }}>
-          <p style={{ color: '#25D366', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '16px' }}>{t.ctaLabel}</p>
-          <h2 style={{ fontSize: '40px', fontWeight: 700, marginBottom: '16px', letterSpacing: '-1px', fontFamily: clash }}>{t.ctaTitle}</h2>
-          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '16px', marginBottom: '40px' }}>{t.ctaSub}</p>
+      <section style={{ maxWidth: '1100px', margin: '0 auto', padding: isMobile ? '60px 20px' : '100px 32px', textAlign: 'center' }}>
+        <div style={{ background: '#1A6B3C', borderRadius: '24px', padding: isMobile ? '40px 24px' : '64px 32px' }}>
+          <p style={{ color: '#25D366', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '14px' }}>{t.ctaLabel}</p>
+          <h2 style={{ fontSize: isMobile ? '26px' : '40px', fontWeight: 700, marginBottom: '14px', letterSpacing: '-0.5px', fontFamily: clash }}>{t.ctaTitle}</h2>
+          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: isMobile ? '14px' : '16px', marginBottom: '32px' }}>{t.ctaSub}</p>
           <Link href="/signup">
-            <span style={{ background: '#25D366', color: 'white', padding: '16px 40px', borderRadius: '14px', fontSize: '16px', fontWeight: 700, cursor: 'pointer', display: 'inline-block', fontFamily: clash }}>{t.ctaBtn}</span>
+            <span style={{ background: '#25D366', color: 'white', padding: isMobile ? '14px 28px' : '16px 40px', borderRadius: '14px', fontSize: isMobile ? '15px' : '16px', fontWeight: 700, cursor: 'pointer', display: 'inline-block', fontFamily: clash }}>{t.ctaBtn}</span>
           </Link>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: '32px' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: isMobile ? '24px 20px' : '32px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: 'center', gap: '16px', textAlign: isMobile ? 'center' : 'left' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
             <div style={{ width: '24px', height: '24px', background: '#1A6B3C', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800, fontFamily: clash }}>S</div>
             <span style={{ fontWeight: 700, fontSize: '14px', fontFamily: clash }}>Stoqly</span>
           </div>
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>{t.footer}</p>
-          <div style={{ display: 'flex', gap: '20px' }}>
+          <div style={{ display: 'flex', gap: '20px', justifyContent: isMobile ? 'center' : 'flex-end' }}>
             <Link href="/login"><span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px', cursor: 'pointer' }}>{t.footerLogin}</span></Link>
             <Link href="/signup"><span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px', cursor: 'pointer' }}>{t.footerSignup}</span></Link>
           </div>

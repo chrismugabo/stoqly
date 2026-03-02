@@ -43,3 +43,22 @@ h1, h2, h3, h4 {
 .fade-in-row {
   animation: fadeInRow 0.25s ease forwards;
 }
+/* ===== MOBILE RESPONSIVE ===== */
+
+@media (max-width: 768px) {
+
+  /* Orders page — stack the two columns */
+  .orders-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Suppliers — full width forms */
+  .supplier-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hide desktop sidebar space on mobile */
+  aside {
+    display: none !important;
+  }
+}
