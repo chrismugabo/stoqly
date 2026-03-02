@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [ordersCount, setOrdersCount] = useState(0)
   const [monthlySpend, setMonthlySpend] = useState(0)
   const [recentOrders, setRecentOrders] = useState([])
+  const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -56,7 +57,51 @@ export default function Dashboard() {
       .from('orders').select('id, total_amount, status, created_at, suppliers(name)')
       .order('created_at', { ascending: false }).limit(5)
     setRecentOrders(recent || [])
+
+    await detectAlerts()
     setLoading(false)
+  }
+
+  const detectAlerts = async () => {
+    const { data: products } = await supabase
+      .from('products')
+      .select('id, name, current_price, alert_threshold, suppliers(name)')
+
+    if (!products || products.length === 0) return
+
+    const detectedAlerts = []
+
+    for (const product of products) {
+      const { data: history } = await supabase
+        .from('price_history')
+        .select('price, recorded_at')
+        .eq('product_id', product.id)
+        .order('recorded_at', { ascending: false })
+        .limit(2)
+
+      if (!history || history.length < 2) continue
+
+      const latestPrice = Number(history[0].price)
+      const previousPrice = Number(history[1].price)
+
+      if (previousPrice === 0) continue
+
+      const changePercent = ((latestPrice - previousPrice) / previousPrice) * 100
+
+      if (changePercent >= Number(product.alert_threshold)) {
+        detectedAlerts.push({
+          productId: product.id,
+          productName: product.name,
+          supplierName: product.suppliers?.name,
+          previousPrice,
+          latestPrice,
+          changePercent: Math.round(changePercent),
+          threshold: product.alert_threshold
+        })
+      }
+    }
+
+    setAlerts(detectedAlerts)
   }
 
   const getGreeting = () => {
@@ -79,42 +124,25 @@ export default function Dashboard() {
     <div style={{ display: 'flex', minHeight: '100vh', background: '#F0EDE8' }}>
       <Navbar user={user} />
 
-      <main style={{
-        flex: 1,
-        overflowX: 'hidden',
-        padding: isMobile ? '16px' : '28px',
-        paddingBottom: isMobile ? '100px' : '40px'
-      }}>
+      <main style={{ flex: 1, overflowX: 'hidden', padding: isMobile ? '16px' : '28px', paddingBottom: isMobile ? '100px' : '40px' }}>
 
         {/* Hero */}
-        <div style={{
-          background: 'linear-gradient(135deg, #071f12 0%, #0C3D22 50%, #1A6B3C 100%)',
-          borderRadius: '20px',
-          padding: isMobile ? '24px 20px' : '36px 32px',
-          marginBottom: '16px',
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: '0 8px 32px rgba(12,61,34,0.25)'
-        }}>
+        <div style={{ background: 'linear-gradient(135deg, #071f12 0%, #0C3D22 50%, #1A6B3C 100%)', borderRadius: '20px', padding: isMobile ? '24px 20px' : '36px 32px', marginBottom: '16px', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(12,61,34,0.25)' }}>
           <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '200px', height: '200px', background: 'rgba(37,211,102,0.07)', borderRadius: '50%', border: '1px solid rgba(37,211,102,0.1)' }}></div>
           <div style={{ position: 'absolute', bottom: '-40px', right: '15%', width: '120px', height: '120px', background: 'rgba(37,211,102,0.05)', borderRadius: '50%' }}></div>
-
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(37,211,102,0.15)', border: '1px solid rgba(37,211,102,0.25)', borderRadius: '20px', padding: '4px 12px', marginBottom: '14px' }}>
               <div style={{ width: '5px', height: '5px', background: '#4ade80', borderRadius: '50%' }}></div>
               <span style={{ color: '#4ade80', fontSize: '11px', fontWeight: 600 }}>{getGreeting()} 👋</span>
             </div>
-
             <h1 style={{ color: 'white', fontSize: isMobile ? '24px' : '32px', fontWeight: 700, marginBottom: '8px', fontFamily: clash, lineHeight: 1.1 }}>
               {profile?.first_name ? `Welcome back, ${profile.first_name}!` : 'Welcome back!'}
             </h1>
-
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', marginBottom: '20px', maxWidth: '360px', lineHeight: 1.6 }}>
               {profile?.restaurant_name
                 ? `Managing suppliers for ${profile.restaurant_name} 🇷🇼`
                 : 'Manage your suppliers, track prices, and send orders via WhatsApp.'}
             </p>
-
             <Link href="/orders">
               <button style={{ background: '#25D366', color: 'white', fontWeight: 700, padding: '11px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '14px', display: 'inline-flex', alignItems: 'center', gap: '8px', fontFamily: clash, boxShadow: '0 4px 16px rgba(37,211,102,0.35)' }}>
                 📲 New WhatsApp Order
@@ -123,25 +151,52 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Stat Cards — 2x2 on mobile, 4 across on desktop */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-          gap: '12px',
-          marginBottom: '16px'
-        }}>
+        {/* Price Alerts */}
+        {alerts.length > 0 && (
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <span style={{ fontSize: '16px' }}>🔔</span>
+              <h2 style={{ fontWeight: 700, fontSize: '15px', color: '#111', fontFamily: clash }}>Price Alerts</h2>
+              <div style={{ background: '#dc2626', color: 'white', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', fontFamily: clash }}>{alerts.length}</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {alerts.map((alert, i) => (
+                <div key={i} style={{ background: 'white', borderRadius: '16px', padding: '16px 18px', border: '1.5px solid #fecaca', boxShadow: '0 2px 12px rgba(220,38,38,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '42px', height: '42px', background: '#fef2f2', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', border: '1px solid #fecaca', flexShrink: 0 }}>⚠️</div>
+                    <div>
+                      <p style={{ fontWeight: 700, fontSize: '14px', color: '#111', fontFamily: clash }}>{alert.productName}</p>
+                      <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
+                        {alert.supplierName} · RWF {alert.previousPrice.toLocaleString()} → RWF {alert.latestPrice.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ background: '#fef2f2', color: '#dc2626', fontSize: '15px', fontWeight: 800, padding: '6px 12px', borderRadius: '10px', fontFamily: clash }}>
+                      +{alert.changePercent}%
+                    </div>
+                    <p style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>above {alert.threshold}% threshold</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Stats — fixed size cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
           {stats.map(stat => (
             <Link href={stat.href} key={stat.label}>
               <div style={{
                 background: stat.bg,
                 borderRadius: '16px',
-                padding: isMobile ? '16px 14px' : '18px 16px',
+                padding: '18px 16px',
                 cursor: 'pointer',
                 transition: 'transform 0.15s, box-shadow 0.15s',
                 boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
                 position: 'relative',
                 overflow: 'hidden',
-                height: isMobile ? '100px' : '110px',
+                height: '100px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between'
@@ -149,21 +204,16 @@ export default function Dashboard() {
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)' }}
               >
-                <div style={{ position: 'absolute', bottom: '-12px', right: '-6px', fontSize: isMobile ? '44px' : '52px', opacity: 0.12 }}>{stat.emoji}</div>
+                <div style={{ position: 'absolute', bottom: '-10px', right: '-4px', fontSize: '48px', opacity: 0.1 }}>{stat.emoji}</div>
                 <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>{stat.label}</p>
-                <p style={{ color: 'white', fontSize: isMobile ? '24px' : '28px', fontWeight: 800, fontFamily: clash, lineHeight: 1 }}>{loading ? '—' : stat.value}</p>
+                <p style={{ color: 'white', fontSize: '26px', fontWeight: 800, fontFamily: clash, lineHeight: 1 }}>{loading ? '—' : stat.value}</p>
               </div>
             </Link>
           ))}
         </div>
 
         {/* Quick Actions */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(3, 1fr)',
-          gap: '10px',
-          marginBottom: '16px'
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
           {[
             { href: '/suppliers', icon: '🏪', label: 'Suppliers', sub: 'Add or edit', color: '#f0fdf4', border: '#bbf7d0' },
             { href: '/suppliers', icon: '📦', label: 'Products', sub: 'Manage stock', color: '#eff6ff', border: '#bfdbfe' },
@@ -171,20 +221,12 @@ export default function Dashboard() {
           ].map((a, i) => (
             <Link href={a.href} key={i}>
               <div style={{
-                background: 'white',
-                borderRadius: '16px',
+                background: 'white', borderRadius: '16px',
                 padding: isMobile ? '14px 8px' : '16px 12px',
-                border: `1px solid ${a.border}`,
-                cursor: 'pointer',
-                textAlign: 'center',
-                transition: 'all 0.15s',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                height: isMobile ? '90px' : '100px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
+                border: `1px solid ${a.border}`, cursor: 'pointer', textAlign: 'center',
+                transition: 'all 0.15s', boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                height: '90px', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: '6px'
               }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.08)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)' }}
@@ -222,12 +264,7 @@ export default function Dashboard() {
           )}
 
           {recentOrders.map((order, i) => (
-            <div key={order.id} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '14px 20px',
-              borderBottom: i < recentOrders.length - 1 ? '1px solid #f9f7f5' : 'none',
-              transition: 'background 0.15s'
-            }}
+            <div key={order.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: i < recentOrders.length - 1 ? '1px solid #f9f7f5' : 'none', transition: 'background 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.background = '#fafaf9'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >

@@ -1,4 +1,4 @@
- 'use client'
+'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -29,6 +29,7 @@ export default function Navbar({ user }) {
     { href: '/dashboard', label: 'Dashboard', icon: '⊞', mobileIcon: '🏠' },
     { href: '/suppliers', label: 'Suppliers', icon: '◈', mobileIcon: '🏪' },
     { href: '/orders', label: 'Orders', icon: '◎', mobileIcon: '📲' },
+    { href: '/prices', label: 'Prices', icon: '📈', mobileIcon: '📈' },
   ]
 
   if (isMobile) {
@@ -45,11 +46,11 @@ export default function Navbar({ user }) {
           const active = pathname === link.href
           return (
             <Link key={link.href} href={link.href}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '6px 20px', cursor: 'pointer', position: 'relative' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '6px 16px', cursor: 'pointer', position: 'relative' }}>
                 {active && (
                   <div style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', width: '32px', height: '3px', background: '#25D366', borderRadius: '0 0 4px 4px' }}></div>
                 )}
-                <span style={{ fontSize: '22px' }}>{link.mobileIcon}</span>
+                <span style={{ fontSize: '20px' }}>{link.mobileIcon}</span>
                 <span style={{ fontSize: '10px', fontWeight: active ? 700 : 400, color: active ? '#4ade80' : 'rgba(255,255,255,0.35)', fontFamily: clash }}>
                   {link.label}
                 </span>
@@ -57,9 +58,9 @@ export default function Navbar({ user }) {
             </Link>
           )
         })}
-        <div onClick={handleLogout} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '6px 20px', cursor: 'pointer' }}>
-          <span style={{ fontSize: '22px' }}>🚪</span>
-          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', fontFamily: clash }}>Sign Out</span>
+        <div onClick={handleLogout} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '6px 16px', cursor: 'pointer' }}>
+          <span style={{ fontSize: '20px' }}>🚪</span>
+          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', fontFamily: clash }}>Out</span>
         </div>
       </nav>
     )
@@ -105,7 +106,7 @@ export default function Navbar({ user }) {
       <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: `0 ${collapsed ? '10px' : '14px'} 14px` }}></div>
 
       {/* Nav links */}
-      <nav style={{ flex: 1, padding: `0 ${collapsed ? '10px' : '10px'}` }}>
+      <nav style={{ flex: 1, padding: '0 10px' }}>
         {links.map(link => {
           const active = pathname === link.href
           const hovered = hoveredLink === link.href
@@ -120,9 +121,7 @@ export default function Navbar({ user }) {
                   justifyContent: collapsed ? 'center' : 'flex-start',
                   gap: '10px', padding: collapsed ? '12px' : '11px 14px',
                   borderRadius: '12px', marginBottom: '4px', cursor: 'pointer',
-                  background: active
-                    ? 'linear-gradient(135deg, #1A6B3C, #166534)'
-                    : hovered ? 'rgba(26,107,60,0.3)' : 'transparent',
+                  background: active ? 'linear-gradient(135deg, #1A6B3C, #166534)' : hovered ? 'rgba(26,107,60,0.3)' : 'transparent',
                   color: active ? 'white' : hovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.4)',
                   transition: 'all 0.18s ease',
                   fontWeight: active ? 600 : 400, fontSize: '13.5px',
@@ -150,7 +149,7 @@ export default function Navbar({ user }) {
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <p style={{ color: 'white', fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</p>
-              <p style={{ color: '#25D366', fontSize: '10px', marginTop: '1px', fontWeight: 500 }}>● Pro Plan</p>
+              <p style={{ color: '#25D366', fontSize: '10px', marginTop: '1px', fontWeight: 500 }}>● Free Plan</p>
             </div>
           </div>
         )}
@@ -168,7 +167,7 @@ export default function Navbar({ user }) {
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
         >
-          {collapsed ? '→' : <><span>Sign out</span></>}
+          {collapsed ? '→' : 'Sign out'}
         </button>
       </div>
     </aside>
