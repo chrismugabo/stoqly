@@ -1,4 +1,4 @@
-'use client'
+ 'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -30,6 +30,7 @@ export default function Navbar({ user }) {
     { href: '/suppliers', label: 'Suppliers', icon: '◈', mobileIcon: '🏪' },
     { href: '/orders', label: 'Orders', icon: '◎', mobileIcon: '📲' },
     { href: '/prices', label: 'Prices', icon: '📈', mobileIcon: '📈' },
+    { href: '/spending', label: 'Spending', icon: '💰', mobileIcon: '💰' },
   ]
 
   if (isMobile) {
@@ -46,21 +47,21 @@ export default function Navbar({ user }) {
           const active = pathname === link.href
           return (
             <Link key={link.href} href={link.href}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '6px 16px', cursor: 'pointer', position: 'relative' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 10px', cursor: 'pointer', position: 'relative' }}>
                 {active && (
-                  <div style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', width: '32px', height: '3px', background: '#25D366', borderRadius: '0 0 4px 4px' }}></div>
+                  <div style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', width: '28px', height: '3px', background: '#25D366', borderRadius: '0 0 4px 4px' }}></div>
                 )}
-                <span style={{ fontSize: '20px' }}>{link.mobileIcon}</span>
-                <span style={{ fontSize: '10px', fontWeight: active ? 700 : 400, color: active ? '#4ade80' : 'rgba(255,255,255,0.35)', fontFamily: clash }}>
+                <span style={{ fontSize: '18px' }}>{link.mobileIcon}</span>
+                <span style={{ fontSize: '9px', fontWeight: active ? 700 : 400, color: active ? '#4ade80' : 'rgba(255,255,255,0.35)', fontFamily: clash }}>
                   {link.label}
                 </span>
               </div>
             </Link>
           )
         })}
-        <div onClick={handleLogout} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '6px 16px', cursor: 'pointer' }}>
-          <span style={{ fontSize: '20px' }}>🚪</span>
-          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', fontFamily: clash }}>Out</span>
+        <div onClick={handleLogout} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 10px', cursor: 'pointer' }}>
+          <span style={{ fontSize: '18px' }}>🚪</span>
+          <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', fontFamily: clash }}>Out</span>
         </div>
       </nav>
     )
@@ -106,7 +107,7 @@ export default function Navbar({ user }) {
       <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: `0 ${collapsed ? '10px' : '14px'} 14px` }}></div>
 
       {/* Nav links */}
-      <nav style={{ flex: 1, padding: '0 10px' }}>
+      <nav style={{ flex: 1, padding: '0 10px', overflowY: 'auto' }}>
         {links.map(link => {
           const active = pathname === link.href
           const hovered = hoveredLink === link.href

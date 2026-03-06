@@ -29,6 +29,7 @@ export default function SuppliersPage() {
   const [newProduct, setNewProduct] = useState({ name: '', unit: 'kg', current_price: '', alert_threshold: 10 })
   const [loading, setLoading] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [productCounts, setProductCounts] = useState({})
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -47,7 +48,16 @@ export default function SuppliersPage() {
 
   async function fetchSuppliers() {
     const { data } = await supabase.from('suppliers').select('*').order('name')
-    if (data) setSuppliers(data)
+    if (data) {
+      setSuppliers(data)
+      // Fetch product counts for all suppliers
+      const counts = {}
+      await Promise.all(data.map(async (s) => {
+        const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('supplier_id', s.id)
+        counts[s.id] = count || 0
+      }))
+      setProductCounts(counts)
+    }
   }
 
   async function fetchProducts(supplierId) {
@@ -72,6 +82,7 @@ export default function SuppliersPage() {
     const { data } = await supabase.from('suppliers').insert([{ ...newSupplier, user_id: user.id }]).select()
     if (data) {
       setSuppliers(s => [...s, data[0]])
+      setProductCounts(c => ({ ...c, [data[0].id]: 0 }))
       setShowAddSupplier(false)
       setNewSupplier({ name: '', phone: '', category: 'Vegetables', notes: '' })
     }
@@ -81,11 +92,9 @@ export default function SuppliersPage() {
   async function updateSupplier() {
     if (!editingSupplier.name.trim()) return
     setLoading(true)
-    const { data } = await supabase
-      .from('suppliers')
+    const { data } = await supabase.from('suppliers')
       .update({ name: editingSupplier.name, phone: editingSupplier.phone, category: editingSupplier.category, notes: editingSupplier.notes })
-      .eq('id', editingSupplier.id)
-      .select()
+      .eq('id', editingSupplier.id).select()
     if (data) {
       setSuppliers(s => s.map(x => x.id === editingSupplier.id ? data[0] : x))
       setEditingSupplier(null)
@@ -104,13 +113,12 @@ export default function SuppliersPage() {
     if (!newProduct.name.trim() || !newProduct.current_price) return
     setLoading(true)
     const { data } = await supabase.from('products').insert([{
-      ...newProduct,
-      supplier_id: supplierId,
-      user_id: user.id,
+      ...newProduct, supplier_id: supplierId, user_id: user.id,
       current_price: parseFloat(newProduct.current_price)
     }]).select()
     if (data) {
       setProducts(p => ({ ...p, [supplierId]: [...(p[supplierId] || []), data[0]] }))
+      setProductCounts(c => ({ ...c, [supplierId]: (c[supplierId] || 0) + 1 }))
       setNewProduct({ name: '', unit: 'kg', current_price: '', alert_threshold: 10 })
       setAddProductFor(null)
     }
@@ -120,16 +128,9 @@ export default function SuppliersPage() {
   async function updateProduct() {
     if (!editingProduct.name.trim() || !editingProduct.current_price) return
     setLoading(true)
-    const { data } = await supabase
-      .from('products')
-      .update({
-        name: editingProduct.name,
-        unit: editingProduct.unit,
-        current_price: parseFloat(editingProduct.current_price),
-        alert_threshold: parseFloat(editingProduct.alert_threshold)
-      })
-      .eq('id', editingProduct.id)
-      .select()
+    const { data } = await supabase.from('products')
+      .update({ name: editingProduct.name, unit: editingProduct.unit, current_price: parseFloat(editingProduct.current_price), alert_threshold: parseFloat(editingProduct.alert_threshold) })
+      .eq('id', editingProduct.id).select()
     if (data) {
       const supplierId = editingProduct.supplier_id
       setProducts(p => ({ ...p, [supplierId]: p[supplierId].map(x => x.id === editingProduct.id ? data[0] : x) }))
@@ -141,14 +142,18 @@ export default function SuppliersPage() {
   async function deleteProduct(supplierId, productId) {
     await supabase.from('products').delete().eq('id', productId)
     setProducts(p => ({ ...p, [supplierId]: p[supplierId].filter(x => x.id !== productId) }))
+    setProductCounts(c => ({ ...c, [supplierId]: Math.max((c[supplierId] || 1) - 1, 0) }))
   }
 
   if (!user) return null
 
+  const totalProducts = Object.values(productCounts).reduce((a, b) => a + b, 0)
+
   const inputStyle = {
     width: '100%', padding: '10px 14px', border: '1.5px solid #e5e7eb',
     borderRadius: '10px', fontSize: '14px', outline: 'none',
-    background: 'white', boxSizing: 'border-box', color: '#111'
+    background: 'white', boxSizing: 'border-box', color: '#111',
+    transition: 'border-color 0.15s'
   }
 
   return (
@@ -158,48 +163,65 @@ export default function SuppliersPage() {
       <main style={{ flex: 1, overflowX: 'hidden', padding: isMobile ? '16px' : '24px', paddingBottom: isMobile ? '100px' : '40px' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', gap: '12px' }}>
           <div>
-            <h1 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: 700, color: '#111', fontFamily: clash, marginBottom: '4px' }}>Suppliers & Products</h1>
-            <p style={{ color: '#9ca3af', fontSize: '13px' }}>Tap a supplier to see and manage their products</p>
+            <h1 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: 800, color: '#111', fontFamily: clash, marginBottom: '4px' }}>Suppliers</h1>
+            <p style={{ color: '#9ca3af', fontSize: '13px' }}>
+              {suppliers.length} suppliers · {totalProducts} products tracked
+            </p>
           </div>
           <button
-            onClick={() => setShowAddSupplier(!showAddSupplier)}
-            style={{ background: showAddSupplier ? '#f3f4f6' : '#0C3D22', color: showAddSupplier ? '#374151' : 'white', border: 'none', borderRadius: '12px', padding: '11px 16px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: clash, whiteSpace: 'nowrap', flexShrink: 0 }}
+            onClick={() => { setShowAddSupplier(!showAddSupplier); setEditingSupplier(null) }}
+            style={{ background: showAddSupplier ? '#f3f4f6' : '#0C3D22', color: showAddSupplier ? '#374151' : 'white', border: 'none', borderRadius: '12px', padding: '11px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: clash, whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.15s', boxShadow: showAddSupplier ? 'none' : '0 4px 12px rgba(12,61,34,0.25)' }}
           >
             {showAddSupplier ? '✕ Cancel' : '+ Add Supplier'}
           </button>
         </div>
 
+        {/* Stats bar */}
+        {suppliers.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
+            {[
+              { label: 'Suppliers', value: suppliers.length, icon: '🏪', color: '#1A6B3C', bg: '#f0fdf4', border: '#bbf7d0' },
+              { label: 'Products', value: totalProducts, icon: '📦', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+              { label: 'Categories', value: [...new Set(suppliers.map(s => s.category))].length, icon: '🏷️', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+            ].map((s, i) => (
+              <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '36px', height: '36px', background: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', border: `1px solid ${s.border}`, flexShrink: 0 }}>{s.icon}</div>
+                <div>
+                  <p style={{ fontSize: '20px', fontWeight: 800, color: s.color, fontFamily: clash, lineHeight: 1 }}>{s.value}</p>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>{s.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Add Supplier Form */}
         {showAddSupplier && (
-          <div style={{ background: 'white', borderRadius: '20px', padding: '20px', marginBottom: '16px', border: '1.5px solid #1A6B3C', boxShadow: '0 4px 20px rgba(26,107,60,0.1)' }}>
-            <h3 style={{ fontWeight: 700, fontSize: '15px', marginBottom: '14px', color: '#111', fontFamily: clash }}>New Supplier</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '10px', marginBottom: '12px' }}>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>Name *</label>
-                <input value={newSupplier.name} onChange={e => setNewSupplier(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Marcy James" style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = '#1A6B3C'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>Phone</label>
-                <input value={newSupplier.phone} onChange={e => setNewSupplier(p => ({ ...p, phone: e.target.value }))} placeholder="+250 7XX XXX XXX" style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = '#1A6B3C'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
-              </div>
+          <div style={{ background: 'white', borderRadius: '20px', padding: '22px', marginBottom: '16px', border: '1.5px solid #1A6B3C', boxShadow: '0 4px 20px rgba(26,107,60,0.1)' }}>
+            <h3 style={{ fontWeight: 700, fontSize: '15px', marginBottom: '16px', color: '#111', fontFamily: clash }}>New Supplier</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px', marginBottom: '14px' }}>
+              {[
+                { label: 'Name *', key: 'name', placeholder: 'e.g. Fresh Greens Market' },
+                { label: 'Phone', key: 'phone', placeholder: '+250 7XX XXX XXX' },
+                { label: 'Notes', key: 'notes', placeholder: 'Optional notes' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>{f.label}</label>
+                  <input value={newSupplier[f.key]} onChange={e => setNewSupplier(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder} style={inputStyle}
+                    onFocus={e => e.target.style.borderColor = '#1A6B3C'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
+                </div>
+              ))}
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>Category</label>
                 <select value={newSupplier.category} onChange={e => setNewSupplier(p => ({ ...p, category: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
                   {Object.keys(categoryConfig).map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>Notes</label>
-                <input value={newSupplier.notes} onChange={e => setNewSupplier(p => ({ ...p, notes: e.target.value }))} placeholder="Optional" style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = '#1A6B3C'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
-              </div>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={saveSupplier} disabled={loading} style={{ background: '#0C3D22', color: 'white', border: 'none', borderRadius: '10px', padding: '11px 20px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: clash }}>
+              <button onClick={saveSupplier} disabled={loading} style={{ background: '#0C3D22', color: 'white', border: 'none', borderRadius: '10px', padding: '11px 20px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: clash, boxShadow: '0 4px 12px rgba(12,61,34,0.2)' }}>
                 {loading ? 'Saving...' : '✓ Save Supplier'}
               </button>
               <button onClick={() => setShowAddSupplier(false)} style={{ background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '10px', padding: '11px 16px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
@@ -209,29 +231,25 @@ export default function SuppliersPage() {
 
         {/* Edit Supplier Form */}
         {editingSupplier && (
-          <div style={{ background: 'white', borderRadius: '20px', padding: '20px', marginBottom: '16px', border: '1.5px solid #2563eb', boxShadow: '0 4px 20px rgba(37,99,235,0.1)' }}>
-            <h3 style={{ fontWeight: 700, fontSize: '15px', marginBottom: '14px', color: '#111', fontFamily: clash }}>Edit Supplier</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '10px', marginBottom: '12px' }}>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>Name *</label>
-                <input value={editingSupplier.name} onChange={e => setEditingSupplier(p => ({ ...p, name: e.target.value }))} style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = '#2563eb'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>Phone</label>
-                <input value={editingSupplier.phone || ''} onChange={e => setEditingSupplier(p => ({ ...p, phone: e.target.value }))} style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = '#2563eb'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
-              </div>
+          <div style={{ background: 'white', borderRadius: '20px', padding: '22px', marginBottom: '16px', border: '1.5px solid #2563eb', boxShadow: '0 4px 20px rgba(37,99,235,0.1)' }}>
+            <h3 style={{ fontWeight: 700, fontSize: '15px', marginBottom: '16px', color: '#111', fontFamily: clash }}>Edit Supplier</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px', marginBottom: '14px' }}>
+              {[
+                { label: 'Name *', key: 'name' },
+                { label: 'Phone', key: 'phone' },
+                { label: 'Notes', key: 'notes' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>{f.label}</label>
+                  <input value={editingSupplier[f.key] || ''} onChange={e => setEditingSupplier(p => ({ ...p, [f.key]: e.target.value }))} style={inputStyle}
+                    onFocus={e => e.target.style.borderColor = '#2563eb'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
+                </div>
+              ))}
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>Category</label>
                 <select value={editingSupplier.category} onChange={e => setEditingSupplier(p => ({ ...p, category: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
                   {Object.keys(categoryConfig).map(c => <option key={c}>{c}</option>)}
                 </select>
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '5px' }}>Notes</label>
-                <input value={editingSupplier.notes || ''} onChange={e => setEditingSupplier(p => ({ ...p, notes: e.target.value }))} style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = '#2563eb'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -244,12 +262,12 @@ export default function SuppliersPage() {
         )}
 
         {/* Empty state */}
-        {suppliers.length === 0 && (
-          <div style={{ background: 'white', borderRadius: '20px', padding: '56px 24px', textAlign: 'center', border: '1px solid #ede9e4' }}>
-            <p style={{ fontSize: '44px', marginBottom: '14px' }}>🏪</p>
-            <p style={{ fontWeight: 700, fontSize: '18px', color: '#111', marginBottom: '8px', fontFamily: clash }}>No suppliers yet</p>
-            <p style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '20px' }}>Add your first supplier to get started</p>
-            <button onClick={() => setShowAddSupplier(true)} style={{ background: '#0C3D22', color: 'white', border: 'none', borderRadius: '12px', padding: '12px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: clash }}>
+        {suppliers.length === 0 && !showAddSupplier && (
+          <div style={{ background: 'white', borderRadius: '24px', padding: '64px 24px', textAlign: 'center', border: '1px solid #ede9e4', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+            <div style={{ width: '72px', height: '72px', background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', margin: '0 auto 20px', border: '1px solid #bbf7d0' }}>🏪</div>
+            <p style={{ fontWeight: 800, fontSize: '20px', color: '#111', marginBottom: '8px', fontFamily: clash }}>No suppliers yet</p>
+            <p style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '24px', maxWidth: '280px', margin: '0 auto 24px', lineHeight: 1.6 }}>Add your first supplier to start tracking prices and placing orders</p>
+            <button onClick={() => setShowAddSupplier(true)} style={{ background: '#0C3D22', color: 'white', border: 'none', borderRadius: '14px', padding: '13px 28px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: clash, boxShadow: '0 4px 16px rgba(12,61,34,0.25)' }}>
               + Add First Supplier
             </button>
           </div>
@@ -261,60 +279,87 @@ export default function SuppliersPage() {
             const config = categoryConfig[supplier.category] || categoryConfig.Other
             const isExpanded = expandedId === supplier.id
             const supplierProducts = products[supplier.id] || []
+            const count = productCounts[supplier.id] || 0
 
             return (
-              <div key={supplier.id} style={{ background: 'white', borderRadius: '18px', overflow: 'hidden', border: isExpanded ? '1.5px solid #1A6B3C' : '1px solid #ede9e4', transition: 'all 0.2s', boxShadow: isExpanded ? '0 8px 28px rgba(26,107,60,0.12)' : '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div key={supplier.id} style={{ background: 'white', borderRadius: '20px', overflow: 'hidden', border: isExpanded ? '1.5px solid #1A6B3C' : '1px solid #ede9e4', transition: 'all 0.2s', boxShadow: isExpanded ? '0 8px 28px rgba(26,107,60,0.1)' : '0 2px 8px rgba(0,0,0,0.04)' }}>
 
                 {/* Supplier Row */}
                 <div style={{ display: 'flex', alignItems: 'center', padding: isMobile ? '14px 16px' : '16px 20px', gap: '12px' }}>
-                  <div onClick={() => toggleExpand(supplier)} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, cursor: 'pointer', minWidth: 0 }}>
-                    <div style={{ width: '44px', height: '44px', background: config.bg, borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', border: `1px solid ${config.border}`, flexShrink: 0 }}>
+                  <div onClick={() => toggleExpand(supplier)} style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, cursor: 'pointer', minWidth: 0 }}>
+                    <div style={{ width: '48px', height: '48px', background: config.bg, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', border: `1px solid ${config.border}`, flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                       {config.icon}
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <p style={{ fontWeight: 700, fontSize: '15px', color: '#111', fontFamily: clash }}>{supplier.name}</p>
-                        <span style={{ background: config.badge, color: config.badgeText, fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>{supplier.category}</span>
+                        <span style={{ background: config.badge, color: config.badgeText, fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', flexShrink: 0 }}>{supplier.category}</span>
                       </div>
-                      <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>{supplier.phone || 'No phone'}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '3px' }}>
+                        <p style={{ fontSize: '12px', color: '#9ca3af' }}>{supplier.phone || 'No phone'}</p>
+                        <span style={{ fontSize: '11px', color: '#9ca3af' }}>·</span>
+                        <p style={{ fontSize: '12px', color: '#9ca3af' }}>{count} product{count !== 1 ? 's' : ''}</p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Action buttons */}
+                  {/* Actions */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                    <button
-                      onClick={e => { e.stopPropagation(); setEditingSupplier(supplier); setShowAddSupplier(false) }}
-                      style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); deleteSupplier(supplier.id) }}
-                      style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
-                    >
-                      Delete
-                    </button>
-                    <span onClick={() => toggleExpand(supplier)} style={{ color: '#9ca3af', fontSize: '20px', transition: 'transform 0.25s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', display: 'inline-block', cursor: 'pointer', padding: '0 4px' }}>⌄</span>
+                    {!isMobile && (
+                      <>
+                        <button onClick={e => { e.stopPropagation(); setEditingSupplier(supplier); setShowAddSupplier(false) }}
+                          style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#dbeafe'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#eff6ff'}
+                        >Edit</button>
+                        <button onClick={e => { e.stopPropagation(); deleteSupplier(supplier.id) }}
+                          style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#fee2e2'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#fef2f2'}
+                        >Delete</button>
+                      </>
+                    )}
+                    <div onClick={() => toggleExpand(supplier)} style={{ width: '32px', height: '32px', borderRadius: '10px', background: isExpanded ? '#f0fdf4' : '#f9fafb', border: `1px solid ${isExpanded ? '#bbf7d0' : '#e5e7eb'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
+                      <span style={{ display: 'inline-block', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s', fontSize: '14px', color: isExpanded ? '#1A6B3C' : '#6b7280' }}>⌄</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Expanded Products */}
                 {isExpanded && (
                   <div style={{ borderTop: '1px solid #f0fdf4', background: '#fafff9' }}>
-                    <div style={{ padding: isMobile ? '14px 16px' : '16px 20px' }}>
-                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#1A6B3C', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '12px' }}>
-                        Products ({supplierProducts.length})
-                      </p>
+                    <div style={{ padding: isMobile ? '16px' : '18px 20px' }}>
+
+                      {/* Mobile edit/delete */}
+                      {isMobile && (
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                          <button onClick={() => { setEditingSupplier(supplier); setShowAddSupplier(false) }}
+                            style={{ flex: 1, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: '10px', padding: '10px', fontSize: '13px', cursor: 'pointer', fontWeight: 600 }}>
+                            Edit Supplier
+                          </button>
+                          <button onClick={() => deleteSupplier(supplier.id)}
+                            style={{ flex: 1, background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '10px', padding: '10px', fontSize: '13px', cursor: 'pointer', fontWeight: 600 }}>
+                            Delete
+                          </button>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <p style={{ fontSize: '11px', fontWeight: 700, color: '#1A6B3C', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                          Products ({supplierProducts.length})
+                        </p>
+                      </div>
 
                       {supplierProducts.length === 0 && !addProductFor && (
-                        <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '12px' }}>No products yet — add one below</p>
+                        <div style={{ padding: '20px', textAlign: 'center', background: 'white', borderRadius: '14px', border: '1px dashed #bbf7d0', marginBottom: '12px' }}>
+                          <p style={{ color: '#9ca3af', fontSize: '13px' }}>No products yet — add one below</p>
+                        </div>
                       )}
 
                       {supplierProducts.map((product) => (
                         <div key={product.id}>
-                          {/* Edit product inline */}
                           {editingProduct?.id === product.id ? (
-                            <div style={{ background: 'white', borderRadius: '14px', padding: '16px', border: '1.5px solid #2563eb', marginBottom: '8px' }}>
+                            <div style={{ background: 'white', borderRadius: '14px', padding: '16px', border: '1.5px solid #2563eb', marginBottom: '8px', boxShadow: '0 2px 8px rgba(37,99,235,0.08)' }}>
                               <p style={{ fontSize: '12px', fontWeight: 700, color: '#2563eb', marginBottom: '12px', fontFamily: clash }}>Edit Product</p>
                               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '10px', marginBottom: '12px' }}>
                                 <div style={{ gridColumn: isMobile ? 'span 2' : 'span 1' }}>
@@ -339,11 +384,9 @@ export default function SuppliersPage() {
                                     onFocus={e => e.target.style.borderColor = '#2563eb'} onBlur={e => e.target.style.borderColor = '#e5e7eb'} />
                                 </div>
                               </div>
-                              <div style={{ background: '#eff6ff', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                                <span style={{ fontSize: '14px' }}>💡</span>
-                                <p style={{ fontSize: '12px', color: '#2563eb', lineHeight: 1.5 }}>
-                                  Updating the price here tells Stoqly the supplier's new price. Place an order after saving to record it in price history and trigger alerts.
-                                </p>
+                              <div style={{ background: '#eff6ff', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', display: 'flex', gap: '8px' }}>
+                                <span>💡</span>
+                                <p style={{ fontSize: '12px', color: '#2563eb', lineHeight: 1.5 }}>Update the price then place a new order to trigger price history tracking and alerts.</p>
                               </div>
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <button onClick={updateProduct} disabled={loading} style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 16px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: clash }}>
@@ -353,25 +396,27 @@ export default function SuppliersPage() {
                               </div>
                             </div>
                           ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'white', borderRadius: '12px', marginBottom: '8px', border: '1px solid #e9fce9', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', background: 'white', borderRadius: '12px', marginBottom: '8px', border: '1px solid #e9fce9', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', transition: 'all 0.15s' }}
+                              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
+                              onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.04)'}
+                            >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <div style={{ width: '8px', height: '8px', background: '#25D366', borderRadius: '50%', flexShrink: 0 }}></div>
                                 <div>
                                   <p style={{ fontWeight: 600, fontSize: '13px', color: '#111', fontFamily: clash }}>{product.name}</p>
-                                  <p style={{ fontSize: '11px', color: '#9ca3af' }}>per {product.unit} · alert at {product.alert_threshold}%</p>
+                                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px' }}>per {product.unit} · alert at {product.alert_threshold}%</p>
                                 </div>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <p style={{ fontWeight: 700, fontSize: '13px', color: '#1A6B3C', fontFamily: clash }}>RWF {Number(product.current_price).toLocaleString()}</p>
-                                <button
-                                  onClick={() => setEditingProduct({ ...product })}
-                                  style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: '7px', padding: '4px 9px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
-                                >
+                                <button onClick={() => setEditingProduct({ ...product })}
+                                  style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: '7px', padding: '4px 9px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}>
                                   Edit
                                 </button>
-                                <button
-                                  onClick={() => deleteProduct(supplier.id, product.id)}
-                                  style={{ background: 'none', border: 'none', color: '#d1d5db', cursor: 'pointer', fontSize: '18px', padding: '0 2px' }}
+                                <button onClick={() => deleteProduct(supplier.id, product.id)}
+                                  style={{ background: 'none', border: 'none', color: '#d1d5db', cursor: 'pointer', fontSize: '18px', padding: '0 2px', transition: 'color 0.15s', lineHeight: 1 }}
+                                  onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                  onMouseLeave={e => e.currentTarget.style.color = '#d1d5db'}
                                 >×</button>
                               </div>
                             </div>
@@ -381,7 +426,7 @@ export default function SuppliersPage() {
 
                       {/* Add Product Form */}
                       {addProductFor === supplier.id ? (
-                        <div style={{ background: 'white', borderRadius: '14px', padding: '16px', border: '1.5px solid #1A6B3C', marginTop: '8px' }}>
+                        <div style={{ background: 'white', borderRadius: '14px', padding: '16px', border: '1.5px solid #1A6B3C', marginTop: '8px', boxShadow: '0 2px 8px rgba(26,107,60,0.08)' }}>
                           <p style={{ fontSize: '12px', fontWeight: 700, color: '#1A6B3C', marginBottom: '12px', fontFamily: clash }}>New Product</p>
                           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '10px', marginBottom: '12px' }}>
                             <div style={{ gridColumn: isMobile ? 'span 2' : 'span 1' }}>
@@ -414,7 +459,8 @@ export default function SuppliersPage() {
                           </div>
                         </div>
                       ) : (
-                        <button onClick={() => setAddProductFor(supplier.id)} style={{ width: '100%', background: 'white', border: '1.5px dashed #bbf7d0', borderRadius: '12px', padding: '12px', fontSize: '13px', fontWeight: 600, color: '#1A6B3C', cursor: 'pointer', marginTop: '4px', fontFamily: clash }}
+                        <button onClick={() => setAddProductFor(supplier.id)}
+                          style={{ width: '100%', background: 'white', border: '1.5px dashed #bbf7d0', borderRadius: '12px', padding: '12px', fontSize: '13px', fontWeight: 600, color: '#1A6B3C', cursor: 'pointer', marginTop: '4px', fontFamily: clash, transition: 'all 0.15s' }}
                           onMouseEnter={e => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.borderColor = '#1A6B3C' }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#bbf7d0' }}
                         >
@@ -428,7 +474,6 @@ export default function SuppliersPage() {
             )
           })}
         </div>
-
       </main>
     </div>
   )
