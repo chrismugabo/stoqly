@@ -26,7 +26,15 @@ export default function Signup() {
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
-      password: form.password
+      password: form.password,
+      options: {
+        emailRedirectTo: 'https://stoqly-six.vercel.app/dashboard',
+        data: {
+          first_name: form.firstName.trim(),
+          last_name: form.lastName.trim(),
+          restaurant_name: form.restaurantName.trim()
+        }
+      }
     })
 
     if (signUpError) { setError(signUpError.message); setLoading(false); return }
