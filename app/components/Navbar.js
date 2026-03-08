@@ -1,4 +1,4 @@
- 'use client'
+'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -31,6 +31,7 @@ export default function Navbar({ user }) {
     { href: '/orders', label: 'Orders', icon: '◎', mobileIcon: '📲' },
     { href: '/prices', label: 'Prices', icon: '📈', mobileIcon: '📈' },
     { href: '/spending', label: 'Spending', icon: '💰', mobileIcon: '💰' },
+    { href: '/profile', label: 'Settings', icon: '⚙️', mobileIcon: '⚙️' },
   ]
 
   if (isMobile) {
@@ -47,22 +48,18 @@ export default function Navbar({ user }) {
           const active = pathname === link.href
           return (
             <Link key={link.href} href={link.href}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 10px', cursor: 'pointer', position: 'relative' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 8px', cursor: 'pointer', position: 'relative' }}>
                 {active && (
                   <div style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', width: '28px', height: '3px', background: '#25D366', borderRadius: '0 0 4px 4px' }}></div>
                 )}
-                <span style={{ fontSize: '18px' }}>{link.mobileIcon}</span>
-                <span style={{ fontSize: '9px', fontWeight: active ? 700 : 400, color: active ? '#4ade80' : 'rgba(255,255,255,0.35)', fontFamily: clash }}>
+                <span style={{ fontSize: '17px' }}>{link.mobileIcon}</span>
+                <span style={{ fontSize: '8px', fontWeight: active ? 700 : 400, color: active ? '#4ade80' : 'rgba(255,255,255,0.35)', fontFamily: clash }}>
                   {link.label}
                 </span>
               </div>
             </Link>
           )
         })}
-        <div onClick={handleLogout} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 10px', cursor: 'pointer' }}>
-          <span style={{ fontSize: '18px' }}>🚪</span>
-          <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', fontFamily: clash }}>Out</span>
-        </div>
       </nav>
     )
   }
@@ -156,9 +153,11 @@ export default function Navbar({ user }) {
         )}
 
         {collapsed && (
-          <div style={{ width: '34px', height: '34px', background: 'linear-gradient(135deg, #1A6B3C, #25D366)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '14px', fontWeight: 700, margin: '0 auto 10px', fontFamily: clash }}>
-            {user?.email?.[0].toUpperCase()}
-          </div>
+          <Link href="/profile">
+            <div style={{ width: '34px', height: '34px', background: 'linear-gradient(135deg, #1A6B3C, #25D366)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '14px', fontWeight: 700, margin: '0 auto 10px', fontFamily: clash, cursor: 'pointer' }}>
+              {user?.email?.[0].toUpperCase()}
+            </div>
+          </Link>
         )}
 
         <button

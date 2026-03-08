@@ -1,326 +1,395 @@
  'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
 
 const clash = "'Clash Display', sans-serif"
+const dm = "'DM Sans', sans-serif"
 
-const content = {
-  en: {
-    flag: '🇬🇧', lang: 'EN',
-    nav: { login: 'Login', cta: 'Get Started →' },
-    badge: 'Built for Kigali Restaurants 🇷🇼',
-    h1a: 'Your supplier', h1b: 'raised prices.', h1c: 'Did you notice?',
-    sub1: 'Most Kigali restaurants lose money on supplier price increases they never saw coming.',
-    sub2: 'Stoqly tracks what you pay, alerts you the moment prices change, and sends orders via WhatsApp in one tap.',
-    cta1: 'Start Free', cta2: 'Log In',
-    trust: 'Trusted by restaurants in Kigali',
-    mockup: { greeting: 'Good morning 👋', title: 'Business Overview', alert: 'Tomatoes — Fresh Greens', price: 'RWF 800 → RWF 1,100/kg', btn: '📲 Send WhatsApp Order', alertBadge: '🔔 Price Alert', alertSub: 'Cooking Oil +18%' },
-    stats: [{ label: 'SUPPLIERS', value: '8' }, { label: 'PRODUCTS', value: '34' }, { label: 'ORDERS', value: '12' }, { label: 'SPEND', value: '847K' }],
-    howLabel: 'How It Works',
-    howTitle: 'Up and running in 3 steps',
-    howSub: 'No training needed. No complex setup. Just add your suppliers and go.',
-    stepLabel: 'STEP',
-    steps: [
-      { step: '01', icon: '🏪', title: 'Add your suppliers', desc: 'Add the people you buy from — name, phone, category. Add the products you buy and their current prices.' },
-      { step: '02', icon: '📲', title: 'Order via WhatsApp', desc: 'Select a supplier, pick what you need, set quantities. Stoqly writes the WhatsApp message. One tap to send.' },
-      { step: '03', icon: '🔔', title: 'Get price alerts', desc: 'Every order logs the prices. When a supplier charges more than your threshold, you get an instant alert.' },
-    ],
-    featLabel: 'Features',
-    featTitle: "Everything you need. Nothing you don't.",
-    features: [
-      { icon: '📲', title: 'WhatsApp Orders', desc: 'Generate a formatted order message and send it to your supplier in one tap. No typing, no mistakes.' },
-      { icon: '📈', title: 'Price Tracking', desc: 'Every order automatically logs current prices. See the full history of what you paid over time.' },
-      { icon: '🔔', title: 'Price Alerts', desc: 'Set a threshold per product. Get alerted the moment a supplier raises their prices above it.' },
-      { icon: '🏪', title: 'Supplier Management', desc: 'All your suppliers in one place. Phone numbers, categories, products, order history.' },
-      { icon: '📊', title: 'Spending Reports', desc: 'See exactly how much you spend per supplier per month. Spot where your money is going.' },
-      { icon: '🔒', title: 'Your data only', desc: 'Full data isolation. Nobody else can see your suppliers, prices, or orders. Ever.' },
-    ],
-    pricingLabel: 'Pricing',
-    pricingTitle: 'Simple, honest pricing',
-    pricingSub: "Start free. Upgrade when you're ready.",
-    free: { name: 'Free', price: 'RWF 0', period: 'Forever free', features: ['Up to 3 suppliers', 'Up to 10 products', 'WhatsApp ordering', 'Basic price tracking'], cta: 'Get Started Free' },
-    pro: { name: 'Pro', price: 'RWF 8,000', period: 'per month', badge: 'MOST POPULAR', features: ['Unlimited suppliers', 'Unlimited products', 'WhatsApp ordering', 'Full price history', 'Price alerts engine', 'Spending reports'], cta: 'Start Pro Free →' },
-    ctaLabel: 'Get Started Today',
-    ctaTitle: 'Stop finding out about price increases the hard way.',
-    ctaSub: 'Join restaurants in Kigali already using Stoqly 🇷🇼',
-    ctaBtn: 'Start Free Today →',
-    footer: '© 2026 Stoqly · Built for Kigali 🇷🇼',
-    footerLogin: 'Login', footerSignup: 'Sign Up',
-  },
-  fr: {
-    flag: '🇫🇷', lang: 'FR',
-    nav: { login: 'Connexion', cta: 'Commencer →' },
-    badge: 'Conçu pour les restaurants de Kigali 🇷🇼',
-    h1a: 'Votre fournisseur', h1b: 'a augmenté ses prix.', h1c: 'Vous le saviez?',
-    sub1: "La plupart des restaurants de Kigali perdent de l'argent sur des hausses de prix qu'ils n'ont pas vues venir.",
-    sub2: "Stoqly suit vos prix, vous alerte dès qu'ils changent, et envoie vos commandes via WhatsApp en un clic.",
-    cta1: 'Commencer Gratuitement', cta2: 'Se Connecter',
-    trust: 'Utilisé par des restaurants à Kigali',
-    mockup: { greeting: 'Bonjour 👋', title: "Vue d'ensemble", alert: 'Tomates — Fresh Greens', price: 'RWF 800 → RWF 1,100/kg', btn: '📲 Envoyer via WhatsApp', alertBadge: '🔔 Alerte Prix', alertSub: 'Huile de cuisson +18%' },
-    stats: [{ label: 'FOURNISSEURS', value: '8' }, { label: 'PRODUITS', value: '34' }, { label: 'COMMANDES', value: '12' }, { label: 'DÉPENSES', value: '847K' }],
-    howLabel: 'Comment ça marche',
-    howTitle: 'Opérationnel en 3 étapes',
-    howSub: 'Pas de formation. Pas de configuration complexe. Ajoutez vos fournisseurs et démarrez.',
-    stepLabel: 'ÉTAPE',
-    steps: [
-      { step: '01', icon: '🏪', title: 'Ajoutez vos fournisseurs', desc: 'Ajoutez vos fournisseurs — nom, téléphone, catégorie. Ajoutez les produits que vous achetez et leurs prix actuels.' },
-      { step: '02', icon: '📲', title: 'Commandez via WhatsApp', desc: "Choisissez un fournisseur, sélectionnez les produits, définissez les quantités. Stoqly rédige le message WhatsApp. Un clic pour envoyer." },
-      { step: '03', icon: '🔔', title: 'Recevez des alertes de prix', desc: "Chaque commande enregistre les prix. Quand un fournisseur dépasse votre seuil, vous êtes alerté instantanément." },
-    ],
-    featLabel: 'Fonctionnalités',
-    featTitle: "Tout ce dont vous avez besoin. Rien de plus.",
-    features: [
-      { icon: '📲', title: 'Commandes WhatsApp', desc: 'Générez un message de commande formaté et envoyez-le à votre fournisseur en un clic.' },
-      { icon: '📈', title: 'Suivi des Prix', desc: "Chaque commande enregistre automatiquement les prix actuels. Consultez l'historique complet." },
-      { icon: '🔔', title: 'Alertes de Prix', desc: "Définissez un seuil par produit. Soyez alerté dès qu'un fournisseur dépasse ce seuil." },
-      { icon: '🏪', title: 'Gestion Fournisseurs', desc: 'Tous vos fournisseurs au même endroit. Téléphones, catégories, produits, historique.' },
-      { icon: '📊', title: 'Rapports de Dépenses', desc: 'Voyez exactement combien vous dépensez par fournisseur chaque mois.' },
-      { icon: '🔒', title: 'Vos données uniquement', desc: "Isolation complète des données. Personne d'autre ne peut voir vos informations." },
-    ],
-    pricingLabel: 'Tarification',
-    pricingTitle: 'Tarification simple et honnête',
-    pricingSub: 'Commencez gratuitement. Passez au niveau supérieur quand vous êtes prêt.',
-    free: { name: 'Gratuit', price: 'RWF 0', period: 'Toujours gratuit', features: ["Jusqu'à 3 fournisseurs", "Jusqu'à 10 produits", 'Commandes WhatsApp', 'Suivi des prix de base'], cta: 'Commencer Gratuitement' },
-    pro: { name: 'Pro', price: 'RWF 8,000', period: 'par mois', badge: 'PLUS POPULAIRE', features: ['Fournisseurs illimités', 'Produits illimités', 'Commandes WhatsApp', "Historique complet des prix", "Moteur d'alertes de prix", 'Rapports de dépenses'], cta: 'Démarrer Pro Gratuitement →' },
-    ctaLabel: "Commencer Aujourd'hui",
-    ctaTitle: 'Arrêtez de découvrir les hausses de prix à la dure.',
-    ctaSub: 'Rejoignez les restaurants de Kigali qui utilisent déjà Stoqly 🇷🇼',
-    ctaBtn: 'Commencer Gratuitement →',
-    footer: '© 2026 Stoqly · Conçu pour Kigali 🇷🇼',
-    footerLogin: 'Connexion', footerSignup: "S'inscrire",
-  }
-}
-
-const statColors = ['#1A6B3C', '#2563eb', '#f97316', '#7c3aed']
-
-export default function Home() {
+export default function LandingPage() {
   const [lang, setLang] = useState('en')
-  const [isMobile, setIsMobile] = useState(false)
-  const t = content[lang]
 
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  const t = {
+    en: {
+      badge: 'Built for Kigali Restaurants 🇷🇼',
+      hero1: 'Your supplier',
+      hero2: 'raised prices.',
+      hero3: 'Did you notice?',
+      sub1: 'Most Kigali restaurants lose money on supplier price increases they never saw coming.',
+      sub2: 'Stoqly tracks what you pay, alerts you the moment prices change, and sends orders via WhatsApp in one tap.',
+      cta: 'Start Free',
+      login: 'Log In',
+      trusted: 'Trusted by restaurants in Kigali',
+      featuresTitle: 'Everything you need to manage suppliers',
+      featuresSub: 'Built specifically for how Kigali restaurants actually work',
+      features: [
+        { icon: '⚠️', title: 'Price Alerts', desc: 'Get notified the moment a supplier raises prices above your threshold. Never get caught off guard again.' },
+        { icon: '📲', title: 'WhatsApp Orders', desc: 'Build your order in seconds and send it directly to your supplier via WhatsApp — in English or Kinyarwanda.' },
+        { icon: '📊', title: 'Spending Reports', desc: 'See exactly how much you spend per supplier each month. Identify where your money is going.' },
+      ],
+      howTitle: 'Up and running in 3 steps',
+      howSub: 'No training needed. If you can use WhatsApp, you can use Stoqly.',
+      steps: [
+        { num: '01', title: 'Add your suppliers', desc: 'Add the suppliers you already work with. Add their products and current prices.' },
+        { num: '02', title: 'Place orders via WhatsApp', desc: 'Select products, set quantities, and send a professional order message directly to your supplier.' },
+        { num: '03', title: 'Track price changes', desc: 'Every order records the price. Stoqly alerts you whenever prices spike above your limit.' },
+      ],
+      pricingTitle: 'Simple, honest pricing',
+      pricingSub: 'Start free. Upgrade when you\'re ready.',
+      free: 'Free',
+      pro: 'Pro',
+      freePrice: 'RWF 0',
+      proPrice: 'RWF 8,000',
+      perMonth: '/month',
+      freeFeatures: ['2 suppliers', '5 products', '10 orders/month', 'WhatsApp ordering', 'Basic price tracking'],
+      proFeatures: ['Unlimited suppliers', 'Unlimited products', 'Unlimited orders', 'Kinyarwanda messages', 'Price alerts engine', 'Spending reports', 'Priority support'],
+      getStartedFree: 'Get Started Free',
+      upgradePro: 'Start Pro',
+      ctaTitle: 'Stop losing money to price increases you didn\'t see',
+      ctaSub: 'Join restaurants in Kigali already using Stoqly to stay in control of their supplier costs.',
+      ctaBtn: 'Start Free Today →',
+      footerTagline: 'Built for Kigali restaurants. 🇷🇼',
+    },
+    fr: {
+      badge: 'Conçu pour les restaurants de Kigali 🇷🇼',
+      hero1: 'Votre fournisseur',
+      hero2: 'a augmenté les prix.',
+      hero3: 'L\'avez-vous remarqué?',
+      sub1: 'La plupart des restaurants de Kigali perdent de l\'argent sur des hausses de prix qu\'ils n\'ont jamais vues venir.',
+      sub2: 'Stoqly suit vos prix, vous alerte dès qu\'ils changent, et envoie vos commandes via WhatsApp en un tap.',
+      cta: 'Commencer Gratuit',
+      login: 'Connexion',
+      trusted: 'Utilisé par des restaurants à Kigali',
+      featuresTitle: 'Tout ce qu\'il faut pour gérer vos fournisseurs',
+      featuresSub: 'Conçu pour la façon dont les restaurants de Kigali fonctionnent vraiment',
+      features: [
+        { icon: '⚠️', title: 'Alertes de Prix', desc: 'Soyez notifié dès qu\'un fournisseur augmente ses prix au-delà de votre seuil.' },
+        { icon: '📲', title: 'Commandes WhatsApp', desc: 'Construisez votre commande en secondes et envoyez-la directement via WhatsApp.' },
+        { icon: '📊', title: 'Rapports de Dépenses', desc: 'Voyez exactement combien vous dépensez par fournisseur chaque mois.' },
+      ],
+      howTitle: 'Opérationnel en 3 étapes',
+      howSub: 'Pas de formation nécessaire. Si vous utilisez WhatsApp, vous pouvez utiliser Stoqly.',
+      steps: [
+        { num: '01', title: 'Ajoutez vos fournisseurs', desc: 'Ajoutez les fournisseurs avec qui vous travaillez déjà. Ajoutez leurs produits et prix actuels.' },
+        { num: '02', title: 'Commandez via WhatsApp', desc: 'Sélectionnez des produits, définissez les quantités, envoyez un message professionnel.' },
+        { num: '03', title: 'Suivez les changements de prix', desc: 'Chaque commande enregistre le prix. Stoqly vous alerte si les prix dépassent votre limite.' },
+      ],
+      pricingTitle: 'Tarification simple et honnête',
+      pricingSub: 'Commencez gratuitement. Mettez à niveau quand vous êtes prêt.',
+      free: 'Gratuit',
+      pro: 'Pro',
+      freePrice: 'RWF 0',
+      proPrice: 'RWF 8,000',
+      perMonth: '/mois',
+      freeFeatures: ['2 fournisseurs', '5 produits', '10 commandes/mois', 'Commandes WhatsApp', 'Suivi des prix de base'],
+      proFeatures: ['Fournisseurs illimités', 'Produits illimités', 'Commandes illimitées', 'Messages en Kinyarwanda', 'Moteur d\'alertes de prix', 'Rapports de dépenses', 'Support prioritaire'],
+      getStartedFree: 'Commencer Gratuitement',
+      upgradePro: 'Démarrer Pro',
+      ctaTitle: 'Arrêtez de perdre de l\'argent sur des hausses de prix imprévues',
+      ctaSub: 'Rejoignez les restaurants de Kigali qui utilisent déjà Stoqly.',
+      ctaBtn: 'Commencer Gratuitement →',
+      footerTagline: 'Conçu pour les restaurants de Kigali. 🇷🇼',
+    }
+  }
+
+  const c = t[lang]
 
   return (
-    <main style={{ minHeight: '100vh', background: '#0C3D22', color: 'white', fontFamily: 'DM Sans, sans-serif', overflowX: 'hidden' }}>
+    <div style={{ fontFamily: dm, background: '#0C3D22', minHeight: '100vh' }}>
 
-      {/* NAV */}
-      <header style={{ maxWidth: '1100px', margin: '0 auto', padding: isMobile ? '16px 20px' : '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Navbar */}
+      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(12,61,34,0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '32px', height: '32px', background: '#1A6B3C', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '16px', fontFamily: clash }}>S</div>
-          <span style={{ fontWeight: 700, fontSize: '20px', letterSpacing: '-0.5px', fontFamily: clash }}>Stoqly</span>
+          <div style={{ width: '32px', height: '32px', background: 'linear-gradient(135deg, #1A6B3C, #25D366)', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '16px', fontFamily: clash }}>S</div>
+          <span style={{ color: 'white', fontWeight: 800, fontSize: '18px', fontFamily: clash, letterSpacing: '-0.3px' }}>Stoqly</span>
         </div>
-        <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', alignItems: 'center' }}>
-          {/* Language Toggle */}
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '3px', gap: '2px' }}>
-            {(['en', 'fr']).map(l => (
-              <button key={l} onClick={() => setLang(l)} style={{ padding: isMobile ? '4px 8px' : '5px 12px', borderRadius: '7px', border: 'none', background: lang === l ? '#1A6B3C' : 'transparent', color: lang === l ? 'white' : 'rgba(255,255,255,0.5)', fontSize: '11px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', fontFamily: clash }}>
-                {content[l].flag} {content[l].lang}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Language toggle */}
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', borderRadius: '8px', padding: '3px', gap: '2px', marginRight: '8px' }}>
+            {['en', 'fr'].map(l => (
+              <button key={l} onClick={() => setLang(l)} style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: lang === l ? 'white' : 'transparent', color: lang === l ? '#111' : 'rgba(255,255,255,0.5)', fontWeight: lang === l ? 700 : 500, fontSize: '12px', cursor: 'pointer', fontFamily: clash }}>
+                {l === 'en' ? '🇬🇧 EN' : '🇫🇷 FR'}
               </button>
             ))}
           </div>
-          {!isMobile && <Link href="/login"><span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', cursor: 'pointer' }}>{t.nav.login}</span></Link>}
-          <Link href="/signup"><span style={{ background: '#25D366', color: 'white', padding: isMobile ? '8px 14px' : '10px 20px', borderRadius: '10px', fontSize: isMobile ? '12px' : '14px', fontWeight: 700, cursor: 'pointer', fontFamily: clash, whiteSpace: 'nowrap' }}>{isMobile ? 'Start Free' : t.nav.cta}</span></Link>
+          <Link href="/login">
+            <button style={{ background: 'transparent', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: clash, transition: 'all 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
+            >{c.login}</button>
+          </Link>
+          <Link href="/signup">
+            <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: '10px', padding: '8px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: clash, boxShadow: '0 4px 12px rgba(37,211,102,0.35)', transition: 'all 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+            >{c.cta} →</button>
+          </Link>
         </div>
-      </header>
+      </nav>
 
-      {/* HERO */}
-      <section style={{ maxWidth: '1100px', margin: '0 auto', padding: isMobile ? '40px 20px 60px' : '80px 32px 100px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '40px' : '80px', alignItems: 'center' }}>
-        <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(37,211,102,0.15)', border: '1px solid rgba(37,211,102,0.3)', borderRadius: '20px', padding: '6px 14px', marginBottom: '24px' }}>
-            <div style={{ width: '6px', height: '6px', background: '#25D366', borderRadius: '50%' }}></div>
-            <span style={{ color: '#25D366', fontSize: '12px', fontWeight: 600 }}>{t.badge}</span>
+      {/* Hero */}
+      <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '80px 24px 60px', maxWidth: '1200px', margin: '0 auto', gap: '60px', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1', minWidth: '300px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.2)', borderRadius: '20px', padding: '6px 14px', marginBottom: '24px' }}>
+            <div style={{ width: '6px', height: '6px', background: '#4ade80', borderRadius: '50%', boxShadow: '0 0 8px rgba(74,222,128,0.6)' }}></div>
+            <span style={{ color: '#4ade80', fontSize: '13px', fontWeight: 600 }}>{c.badge}</span>
           </div>
 
-          <h1 style={{ fontSize: isMobile ? '40px' : '52px', fontWeight: 700, lineHeight: 1.05, marginBottom: '20px', letterSpacing: '-1.5px', fontFamily: clash }}>
-            {t.h1a}<br />
-            <span style={{ color: '#25D366' }}>{t.h1b}</span><br />
-            {t.h1c}
+          <h1 style={{ color: 'white', fontSize: 'clamp(36px, 5vw, 64px)', fontWeight: 800, fontFamily: clash, lineHeight: 1.05, marginBottom: '20px' }}>
+            {c.hero1}<br />
+            <span style={{ color: '#25D366' }}>{c.hero2}</span><br />
+            {c.hero3}
           </h1>
 
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: isMobile ? '15px' : '16px', lineHeight: 1.7, marginBottom: '10px', maxWidth: '420px' }}>{t.sub1}</p>
-          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: isMobile ? '14px' : '15px', lineHeight: 1.7, marginBottom: '32px', maxWidth: '420px' }}>{t.sub2}</p>
+          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '16px', lineHeight: 1.7, marginBottom: '12px', maxWidth: '420px' }}>{c.sub1}</p>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '15px', lineHeight: 1.7, marginBottom: '36px', maxWidth: '420px' }}>{c.sub2}</p>
 
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '32px' }}>
             <Link href="/signup">
-              <span style={{ background: '#25D366', color: 'white', padding: '14px 28px', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', display: 'inline-block', fontFamily: clash }}>{t.cta1}</span>
+              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: '14px', padding: '15px 28px', fontSize: '16px', fontWeight: 700, cursor: 'pointer', fontFamily: clash, boxShadow: '0 6px 24px rgba(37,211,102,0.4)', transition: 'all 0.2s' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 32px rgba(37,211,102,0.5)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(37,211,102,0.4)' }}
+              >{c.cta} →</button>
             </Link>
             <Link href="/login">
-              <span style={{ background: 'rgba(255,255,255,0.08)', color: 'white', padding: '14px 28px', borderRadius: '12px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'inline-block', border: '1px solid rgba(255,255,255,0.12)' }}>{t.cta2}</span>
+              <button style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '14px', padding: '15px 28px', fontSize: '16px', fontWeight: 600, cursor: 'pointer', fontFamily: clash, transition: 'all 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
+              >{c.login}</button>
             </Link>
           </div>
 
-          <div style={{ marginTop: '40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Social proof */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ display: 'flex' }}>
               {['C','M','A','J'].map((letter, i) => (
-                <div key={i} style={{ width: '32px', height: '32px', borderRadius: '50%', background: ['#1A6B3C','#25D366','#0d5c33','#1e8449'][i], border: '2px solid #0C3D22', marginLeft: i > 0 ? '-8px' : '0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700 }}>{letter}</div>
+                <div key={i} style={{ width: '32px', height: '32px', borderRadius: '50%', background: `hsl(${i * 40 + 140}, 60%, 35%)`, border: '2px solid #0C3D22', marginLeft: i > 0 ? '-10px' : '0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: 700 }}>{letter}</div>
               ))}
             </div>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>{t.trust}</p>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>{c.trusted}</p>
           </div>
         </div>
 
-        {/* Mockup — hidden on small mobile, shown on tablet+ */}
-        {!isMobile && (
-          <div style={{ position: 'relative' }}>
-            <div style={{ background: '#F7F4EF', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.4)' }}>
-              <div style={{ background: '#0C3D22', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {[0,1,2].map(i => <div key={i} style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }}></div>)}
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginLeft: '8px' }}>stoqly.app/dashboard</span>
-              </div>
-              <div style={{ padding: '24px' }}>
-                <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '4px' }}>{t.mockup.greeting}</p>
-                <p style={{ fontSize: '20px', fontWeight: 800, color: '#111', marginBottom: '20px', fontFamily: clash }}>{t.mockup.title}</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-                  {t.stats.map((s, i) => (
-                    <div key={i} style={{ background: statColors[i], borderRadius: '12px', padding: '14px' }}>
-                      <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>{s.label}</p>
-                      <p style={{ color: 'white', fontSize: '26px', fontWeight: 800, fontFamily: clash }}>{s.value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '12px 14px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <p style={{ fontSize: '12px', fontWeight: 700, color: '#c2410c' }}>⚠️ {t.mockup.alert}</p>
-                    <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>{t.mockup.price}</p>
-                  </div>
-                  <span style={{ background: '#fef2f2', color: '#dc2626', fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px' }}>+37%</span>
-                </div>
-                <button style={{ width: '100%', background: '#25D366', color: 'white', border: 'none', borderRadius: '12px', padding: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: clash }}>{t.mockup.btn}</button>
-              </div>
-            </div>
-            <div style={{ position: 'absolute', top: '-16px', right: '-16px', background: '#25D366', borderRadius: '12px', padding: '10px 14px', boxShadow: '0 8px 24px rgba(37,211,102,0.4)' }}>
-              <p style={{ color: 'white', fontSize: '11px', fontWeight: 700, fontFamily: clash }}>{t.mockup.alertBadge}</p>
-              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '10px' }}>{t.mockup.alertSub}</p>
+        {/* Hero mockup */}
+        <div style={{ flex: '1', minWidth: '320px', position: 'relative' }}>
+          {/* Price alert floating badge */}
+          <div style={{ position: 'absolute', top: '-16px', right: '0', background: '#dc2626', color: 'white', borderRadius: '14px', padding: '10px 16px', fontSize: '13px', fontWeight: 700, fontFamily: clash, boxShadow: '0 8px 24px rgba(220,38,38,0.4)', zIndex: 2, display: 'flex', alignItems: 'center', gap: '8px', animation: 'none' }}>
+            <span>⚠️</span>
+            <div>
+              <p style={{ fontSize: '11px', opacity: 0.8, marginBottom: '1px' }}>Price Alert</p>
+              <p>Cooking Oil +18%</p>
             </div>
           </div>
-        )}
 
-        {/* Mobile — show a simplified stat strip instead of full mockup */}
-        {isMobile && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-            {t.stats.map((s, i) => (
-              <div key={i} style={{ background: statColors[i], borderRadius: '14px', padding: '16px' }}>
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>{s.label}</p>
-                <p style={{ color: 'white', fontSize: '28px', fontWeight: 800, fontFamily: clash }}>{s.value}</p>
+          {/* App mockup */}
+          <div style={{ background: '#F7F4EF', borderRadius: '20px', padding: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', position: 'relative', zIndex: 1 }}>
+            {/* Browser bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', padding: '8px 12px', background: 'white', borderRadius: '10px' }}>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                {['#ef4444','#f59e0b','#22c55e'].map(c => <div key={c} style={{ width: '9px', height: '9px', borderRadius: '50%', background: c }}></div>)}
               </div>
-            ))}
+              <div style={{ flex: 1, background: '#f3f4f6', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', color: '#9ca3af' }}>stoqly.app/dashboard</div>
+            </div>
+
+            <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '12px' }}>Good morning 👋</p>
+            <p style={{ fontWeight: 700, fontSize: '16px', color: '#111', fontFamily: clash, marginBottom: '16px' }}>Business Overview</p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+              {[
+                { label: 'SUPPLIERS', value: '8', bg: 'linear-gradient(135deg, #1A6B3C, #166534)' },
+                { label: 'PRODUCTS', value: '34', bg: 'linear-gradient(135deg, #2563eb, #1d4ed8)' },
+                { label: 'ORDERS', value: '12', bg: 'linear-gradient(135deg, #f97316, #ea580c)' },
+                { label: 'SPEND', value: '847K', bg: 'linear-gradient(135deg, #7c3aed, #6d28d9)' },
+              ].map((s, i) => (
+                <div key={i} style={{ background: s.bg, borderRadius: '12px', padding: '12px 14px', height: '64px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: 700, letterSpacing: '0.5px' }}>{s.label}</p>
+                  <p style={{ color: 'white', fontSize: '20px', fontWeight: 800, fontFamily: clash }}>{s.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Price alert row */}
+            <div style={{ background: '#fff8f0', border: '1.5px solid #fed7aa', borderRadius: '12px', padding: '12px 14px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <p style={{ fontWeight: 700, fontSize: '13px', color: '#111', fontFamily: clash }}>⚠️ Tomatoes — Fresh Greens</p>
+                <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>RWF 800 → RWF 1,100/kg</p>
+              </div>
+              <span style={{ color: '#dc2626', fontWeight: 800, fontSize: '14px', fontFamily: clash }}>+37%</span>
+            </div>
+
+            <button style={{ width: '100%', background: '#25D366', color: 'white', border: 'none', borderRadius: '12px', padding: '13px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: clash }}>
+              📲 Send WhatsApp Order
+            </button>
           </div>
-        )}
+
+          {/* WhatsApp message floating */}
+          <div style={{ position: 'absolute', bottom: '-20px', left: '-20px', background: 'white', borderRadius: '14px', padding: '12px 16px', boxShadow: '0 12px 32px rgba(0,0,0,0.15)', zIndex: 2, maxWidth: '200px' }}>
+            <p style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '4px' }}>WhatsApp sent ✓</p>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: '#111', lineHeight: 1.4 }}>Hello! I'd like to place an order: Tomatoes — 5 kg...</p>
+          </div>
+        </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section style={{ background: 'rgba(0,0,0,0.15)', padding: isMobile ? '60px 20px' : '100px 32px' }}>
+      {/* Features */}
+      <section style={{ background: '#F7F4EF', padding: '80px 24px' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>{t.howLabel}</p>
-          <h2 style={{ textAlign: 'center', fontSize: isMobile ? '28px' : '38px', fontWeight: 700, marginBottom: '12px', letterSpacing: '-1px', fontFamily: clash }}>{t.howTitle}</h2>
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '15px', marginBottom: '48px' }}>{t.howSub}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px' }}>
-            {t.steps.map((s, i) => (
-              <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '28px 24px' }}>
-                <div style={{ width: '48px', height: '48px', background: '#1A6B3C', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', marginBottom: '16px' }}>{s.icon}</div>
-                <p style={{ color: '#25D366', fontSize: '11px', fontWeight: 700, marginBottom: '8px', letterSpacing: '1px' }}>{t.stepLabel} {s.step}</p>
-                <p style={{ fontWeight: 700, fontSize: '17px', marginBottom: '10px', fontFamily: clash }}>{s.title}</p>
-                <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '14px', lineHeight: 1.7 }}>{s.desc}</p>
+          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '20px', padding: '5px 14px', marginBottom: '16px' }}>
+              <span style={{ color: '#1A6B3C', fontSize: '12px', fontWeight: 700 }}>✦ Features</span>
+            </div>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, color: '#111', fontFamily: clash, marginBottom: '12px', lineHeight: 1.1 }}>{c.featuresTitle}</h2>
+            <p style={{ color: '#9ca3af', fontSize: '16px', maxWidth: '480px', margin: '0 auto', lineHeight: 1.6 }}>{c.featuresSub}</p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+            {c.features.map((f, i) => (
+              <div key={i} style={{ background: 'white', borderRadius: '24px', padding: '32px', border: '1px solid #ede9e4', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', transition: 'all 0.2s' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 16px 40px rgba(0,0,0,0.1)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.05)' }}
+              >
+                <div style={{ width: '52px', height: '52px', background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', marginBottom: '20px', border: '1px solid #bbf7d0' }}>{f.icon}</div>
+                <h3 style={{ fontWeight: 700, fontSize: '20px', color: '#111', fontFamily: clash, marginBottom: '10px' }}>{f.title}</h3>
+                <p style={{ color: '#6b7280', fontSize: '15px', lineHeight: 1.7 }}>{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section style={{ padding: isMobile ? '60px 20px' : '100px 32px' }}>
+      {/* How it works */}
+      <section style={{ background: '#0C3D22', padding: '80px 24px' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>{t.featLabel}</p>
-          <h2 style={{ textAlign: 'center', fontSize: isMobile ? '28px' : '38px', fontWeight: 700, marginBottom: '48px', letterSpacing: '-1px', fontFamily: clash }}>{t.featTitle}</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '14px' }}>
-            {t.features.map((f, i) => (
-              <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: isMobile ? '18px 16px' : '24px' }}>
-                <div style={{ fontSize: isMobile ? '24px' : '28px', marginBottom: '12px' }}>{f.icon}</div>
-                <p style={{ fontWeight: 700, fontSize: isMobile ? '13px' : '15px', marginBottom: '8px', fontFamily: clash }}>{f.title}</p>
-                {!isMobile && <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', lineHeight: 1.6 }}>{f.desc}</p>}
+          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.2)', borderRadius: '20px', padding: '5px 14px', marginBottom: '16px' }}>
+              <span style={{ color: '#4ade80', fontSize: '12px', fontWeight: 700 }}>✦ How it works</span>
+            </div>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, color: 'white', fontFamily: clash, marginBottom: '12px', lineHeight: 1.1 }}>{c.howTitle}</h2>
+            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '16px', maxWidth: '440px', margin: '0 auto', lineHeight: 1.6 }}>{c.howSub}</p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+            {c.steps.map((s, i) => (
+              <div key={i} style={{ position: 'relative' }}>
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', padding: '32px', height: '100%', transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                >
+                  <p style={{ fontSize: '48px', fontWeight: 800, color: 'rgba(37,211,102,0.15)', fontFamily: clash, lineHeight: 1, marginBottom: '16px' }}>{s.num}</p>
+                  <h3 style={{ fontWeight: 700, fontSize: '20px', color: 'white', fontFamily: clash, marginBottom: '10px' }}>{s.title}</h3>
+                  <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '15px', lineHeight: 1.7 }}>{s.desc}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* PRICING */}
-      <section style={{ background: 'rgba(0,0,0,0.15)', padding: isMobile ? '60px 20px' : '100px 32px' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>{t.pricingLabel}</p>
-          <h2 style={{ textAlign: 'center', fontSize: isMobile ? '28px' : '38px', fontWeight: 700, marginBottom: '12px', letterSpacing: '-1px', fontFamily: clash }}>{t.pricingTitle}</h2>
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '15px', marginBottom: '40px' }}>{t.pricingSub}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px', maxWidth: '700px', margin: '0 auto' }}>
+      {/* Pricing */}
+      <section style={{ background: '#F7F4EF', padding: '80px 24px' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '20px', padding: '5px 14px', marginBottom: '16px' }}>
+              <span style={{ color: '#1A6B3C', fontSize: '12px', fontWeight: 700 }}>✦ Pricing</span>
+            </div>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, color: '#111', fontFamily: clash, marginBottom: '12px' }}>{c.pricingTitle}</h2>
+            <p style={{ color: '#9ca3af', fontSize: '16px' }}>{c.pricingSub}</p>
+          </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
             {/* Free */}
-            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '28px' }}>
-              <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px', fontFamily: clash }}>{t.free.name}</p>
-              <p style={{ fontSize: '36px', fontWeight: 700, marginBottom: '4px', fontFamily: clash }}>{t.free.price}</p>
-              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '24px' }}>{t.free.period}</p>
-              {t.free.features.map((f, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                  <span style={{ color: '#25D366' }}>✓</span>
-                  <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>{f}</span>
-                </div>
-              ))}
+            <div style={{ background: 'white', borderRadius: '24px', padding: '36px', border: '1px solid #ede9e4', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+              <p style={{ fontWeight: 700, fontSize: '14px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '12px', fontFamily: clash }}>{c.free}</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '8px' }}>
+                <p style={{ fontSize: '40px', fontWeight: 800, color: '#111', fontFamily: clash, lineHeight: 1 }}>{c.freePrice}</p>
+              </div>
+              <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '28px' }}>Forever free</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '32px' }}>
+                {c.freeFeatures.map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '18px', height: '18px', background: '#f0fdf4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0, border: '1px solid #bbf7d0' }}>✓</div>
+                    <p style={{ fontSize: '14px', color: '#374151' }}>{f}</p>
+                  </div>
+                ))}
+              </div>
               <Link href="/signup">
-                <div style={{ marginTop: '24px', width: '100%', background: 'rgba(255,255,255,0.08)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', textAlign: 'center', fontFamily: clash }}>{t.free.cta}</div>
+                <button style={{ width: '100%', background: '#f3f4f6', color: '#111', border: 'none', borderRadius: '14px', padding: '14px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', fontFamily: clash, transition: 'all 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#e5e7eb'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#f3f4f6'}
+                >{c.getStartedFree}</button>
               </Link>
             </div>
 
             {/* Pro */}
-            <div style={{ background: '#1A6B3C', border: '2px solid #25D366', borderRadius: '20px', padding: '28px', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: '#25D366', color: 'white', fontSize: '11px', fontWeight: 700, padding: '4px 12px', borderRadius: '20px', fontFamily: clash, whiteSpace: 'nowrap' }}>{t.pro.badge}</div>
-              <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px', fontFamily: clash }}>{t.pro.name}</p>
-              <p style={{ fontSize: '36px', fontWeight: 700, marginBottom: '4px', fontFamily: clash }}>{t.pro.price}</p>
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', marginBottom: '24px' }}>{t.pro.period}</p>
-              {t.pro.features.map((f, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                  <span style={{ color: '#25D366' }}>✓</span>
-                  <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>{f}</span>
-                </div>
-              ))}
+            <div style={{ background: 'linear-gradient(135deg, #071f12, #0C3D22)', borderRadius: '24px', padding: '36px', border: '1px solid rgba(37,211,102,0.2)', boxShadow: '0 16px 48px rgba(12,61,34,0.25)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '160px', height: '160px', background: 'rgba(37,211,102,0.06)', borderRadius: '50%' }}></div>
+              <div style={{ position: 'absolute', top: '16px', right: '16px', background: '#25D366', color: 'white', fontSize: '11px', fontWeight: 700, padding: '4px 12px', borderRadius: '20px', fontFamily: clash }}>POPULAR</div>
+              <p style={{ fontWeight: 700, fontSize: '14px', color: '#4ade80', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '12px', fontFamily: clash }}>{c.pro}</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '4px' }}>
+                <p style={{ fontSize: '40px', fontWeight: 800, color: 'white', fontFamily: clash, lineHeight: 1 }}>{c.proPrice}</p>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px' }}>{c.perMonth}</p>
+              </div>
+              <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', marginBottom: '28px' }}>~RWF 267/day</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '32px' }}>
+                {c.proFeatures.map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '18px', height: '18px', background: 'rgba(37,211,102,0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0, border: '1px solid rgba(37,211,102,0.3)', color: '#4ade80' }}>✓</div>
+                    <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.75)' }}>{f}</p>
+                  </div>
+                ))}
+              </div>
               <Link href="/signup">
-                <div style={{ marginTop: '24px', width: '100%', background: '#25D366', color: 'white', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', textAlign: 'center', fontFamily: clash }}>{t.pro.cta}</div>
+                <button style={{ width: '100%', background: '#25D366', color: 'white', border: 'none', borderRadius: '14px', padding: '14px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', fontFamily: clash, boxShadow: '0 4px 16px rgba(37,211,102,0.35)', transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(37,211,102,0.45)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(37,211,102,0.35)' }}
+                >{c.upgradePro}</button>
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section style={{ maxWidth: '1100px', margin: '0 auto', padding: isMobile ? '60px 20px' : '100px 32px', textAlign: 'center' }}>
-        <div style={{ background: '#1A6B3C', borderRadius: '24px', padding: isMobile ? '40px 24px' : '64px 32px' }}>
-          <p style={{ color: '#25D366', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '14px' }}>{t.ctaLabel}</p>
-          <h2 style={{ fontSize: isMobile ? '26px' : '40px', fontWeight: 700, marginBottom: '14px', letterSpacing: '-0.5px', fontFamily: clash }}>{t.ctaTitle}</h2>
-          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: isMobile ? '14px' : '16px', marginBottom: '32px' }}>{t.ctaSub}</p>
-          <Link href="/signup">
-            <span style={{ background: '#25D366', color: 'white', padding: isMobile ? '14px 28px' : '16px 40px', borderRadius: '14px', fontSize: isMobile ? '15px' : '16px', fontWeight: 700, cursor: 'pointer', display: 'inline-block', fontFamily: clash }}>{t.ctaBtn}</span>
-          </Link>
+      {/* Final CTA */}
+      <section style={{ background: '#0C3D22', padding: '80px 24px' }}>
+        <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '32px', padding: '56px 40px' }}>
+            <p style={{ fontSize: '48px', marginBottom: '20px' }}>🇷🇼</p>
+            <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 800, color: 'white', fontFamily: clash, marginBottom: '16px', lineHeight: 1.15 }}>{c.ctaTitle}</h2>
+            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '16px', lineHeight: 1.7, marginBottom: '36px', maxWidth: '480px', margin: '0 auto 36px' }}>{c.ctaSub}</p>
+            <Link href="/signup">
+              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: '16px', padding: '16px 36px', fontSize: '17px', fontWeight: 700, cursor: 'pointer', fontFamily: clash, boxShadow: '0 8px 28px rgba(37,211,102,0.4)', transition: 'all 0.2s' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 36px rgba(37,211,102,0.5)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(37,211,102,0.4)' }}
+              >{c.ctaBtn}</button>
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: isMobile ? '24px 20px' : '32px' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: 'center', gap: '16px', textAlign: isMobile ? 'center' : 'left' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
-            <div style={{ width: '24px', height: '24px', background: '#1A6B3C', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800, fontFamily: clash }}>S</div>
-            <span style={{ fontWeight: 700, fontSize: '14px', fontFamily: clash }}>Stoqly</span>
+      {/* Footer */}
+      <footer style={{ background: '#071f12', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '32px 24px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '28px', height: '28px', background: 'linear-gradient(135deg, #1A6B3C, #25D366)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '14px', fontFamily: clash }}>S</div>
+            <div>
+              <p style={{ color: 'white', fontWeight: 700, fontSize: '14px', fontFamily: clash }}>Stoqly</p>
+              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', marginTop: '1px' }}>{c.footerTagline}</p>
+            </div>
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>{t.footer}</p>
-          <div style={{ display: 'flex', gap: '20px', justifyContent: isMobile ? 'center' : 'flex-end' }}>
-            <Link href="/login"><span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px', cursor: 'pointer' }}>{t.footerLogin}</span></Link>
-            <Link href="/signup"><span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px', cursor: 'pointer' }}>{t.footerSignup}</span></Link>
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+            <Link href="/login"><span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', cursor: 'pointer', transition: 'color 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
+            >{c.login}</span></Link>
+            <Link href="/signup"><span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', cursor: 'pointer', transition: 'color 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
+            >{c.cta}</span></Link>
+            <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '12px' }}>© 2026 Stoqly</p>
           </div>
         </div>
       </footer>
 
-    </main>
+    </div>
   )
 }
